@@ -1,19 +1,21 @@
 # Application Protocol
 
 - [Commands](#commands)
-  - [Join the sever](#join-the-sever)
-  - [Prepare the game](#prepare-the-game)
-  - [Start the game](#start-the-game)
-  - [Update the progress](#update-the-progress)
-  - [End the game](#end-the-game)
-  - [Quit the sever](#quit-the-sever)
+  - [Join the Sever](#join-the-sever)
+  - [Prepare the Game](#prepare-the-game)
+  - [Start the Game](#start-the-game)
+  - [Update the Progress](#update-the-progress)
+  - [End the Game](#end-the-game)
+  - [Quit the Sever](#quit-the-sever)
 - [Sequence Diagram](#sequence-diagram)
+  - [General Protocol](#general-protocol)
+  - [Client Error when Joining the Server](#client-error-when-joining-the-server)
 
 ## Commands
 
 - `score` is defined as number of letters completed
 
-### Join the sever
+### Join the Sever
 
 The client intitiates the request.
 
@@ -30,13 +32,13 @@ USER_PROFILE OK
 USER_PROFILE ERR <msg>
 ```
 
-**Response to other all clients:**
+**Response to other all Clients:**
 
 ```
 USER_JOIN <name>
 ```
 
-### Prepare the game 
+### Prepare the Game 
 
 The client intitiates the request.
 
@@ -52,7 +54,7 @@ USER_READY <name>
 USER_READY <name>
 ```
 
-### Start the game 
+### Start the Game 
 
 The server intitiates the request.
 
@@ -66,7 +68,7 @@ START_GAME <text> ...
 
 No response.
 
-### Update the progress
+### Update the Progress
 
 The client intitiates the request at every valid keypress from the client.
 
@@ -83,7 +85,7 @@ USER_PROGRESS <name> <score>
 USERS_PROGRESS <name> <score> <name> <score> <name> <score> <name> <score> ...
 ```
 
-### End the game 
+### End the Game 
 
 The server intitiates the request.
 
@@ -97,7 +99,7 @@ END_GAME <winner_name>
 
 No response.
 
-### Quit the sever
+### Quit the Sever
 
 The client intitiates the request.
 
@@ -115,7 +117,13 @@ USER_QUIT <name>
 
 ## Sequence Diagram
 
+### General Protocol
+
 ![Sequence Diagram](./diagram.svg)
+
+### Client Error when Joining the Server
+
+![Sequence Diagram with Error](./error-diagram.svg)
 
 
 ```staruml
@@ -127,7 +135,7 @@ actor Server
 == Joining the Server ==
 
 Client1 -> Server: USER_PROFILE <name>
-Server -> Client1: USER_PROFILE OK / USER_PROFILE ERR <msg>
+Server -> Client1: USER_PROFILE OK
 Server -> Client2: USER_JOIN <name>
 
 == Preparing the Game ==
@@ -155,5 +163,17 @@ Server -> Client2: END_GAME <winner_name>
 
 Client1 -> Server: USER_QUIT <name>
 Server -> Client2: USER_QUIT <name>
+@enduml
+```
+
+```
+@startuml
+actor Client1
+actor Server
+
+== Joining the Server (Error) ==
+
+Client1 -> Server: USER_PROFILE <name>
+Server -> Client1: USER_PROFILE ERR <msg>
 @enduml
 ```
