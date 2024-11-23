@@ -2,10 +2,9 @@ package ch.heigvd.dai.commands;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
-import java.net.NetworkInterface;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,29 +27,33 @@ public class Server implements Callable<Integer> {
       names = {"-M", "--multicast-address"},
       description = "Multicast address to use for the clients (default: ${DEFAULT-VALUE}).",
       defaultValue = "230.0.0.0")
-  protected String clientsMulticastAddress;
+  protected String multicastAddress;
+
+  @CommandLine.Option(names = {"-H", "--host"}, description = "Server host (default: ${DEFAULT-VALUE}).", defaultValue = "localhost")
+  protected String host;
 
   @CommandLine.Option(
       names = {"-p", "--port"},
       description = "Port to use for the clients (default: ${DEFAULT-VALUE}).",
-      defaultValue = "1732")
-  protected int clientsPort;
+      defaultValue = "4445")
+  protected int port;
 
   @CommandLine.Option(
-      names = {"-I", "--network-interface"},
-      description = "Network interface to use",
-      required = true)
-  protected String networkInterface;
+      names = {"-pm", "--multicastPort"},
+      description = "Port to use for the server (default: ${DEFAULT-VALUE}).",
+      defaultValue = "4446")
+  protected int multicastPort;
 
   private final Map<String, ClientInfo> connectedClients = new HashMap<>();
   private boolean isRunning = true;
-  private MulticastSocket socket;
+  private DatagramSocket unicastSocket;
+  private MulticastSocket multicastSocket;
+  private InetAddress multicastGroup;
 
   private static class ClientInfo {
     InetAddress address;
     int port;
     boolean isReady;
-
     int score;
 
     ClientInfo(InetAddress address, int port) {
@@ -62,8 +65,9 @@ public class Server implements Callable<Integer> {
   }
 
   public enum Message {
-    USER_JOIN_OK,
+    OK,
     USER_JOIN_ERR,
+    NEW_USER,
     START_GAME,
     END_GAME,
   }
@@ -77,35 +81,26 @@ public class Server implements Callable<Integer> {
       LOGGER.severe("Error starting the server: " + e.getMessage());
       exit = 1;
     } finally {
-      socket.close();
+      if (unicastSocket != null && !unicastSocket.isClosed()) unicastSocket.close();
+      if (multicastSocket != null && !multicastSocket.isClosed()) multicastSocket.close();
     }
     return exit;
   }
 
   private void startServer() throws IOException {
-    socket = new MulticastSocket(clientsPort);
-    InetAddress multicastAddress = InetAddress.getByName(clientsMulticastAddress);
-    InetSocketAddress multicastGroup = new InetSocketAddress(multicastAddress, clientsPort);
-    NetworkInterface netInterface = NetworkInterface.getByName(networkInterface);
-    socket.joinGroup(multicastGroup, netInterface);
+    unicastSocket = new DatagramSocket(port);
+    multicastSocket = new MulticastSocket();
+    multicastGroup = InetAddress.getByName(multicastAddress);
 
-    LOGGER.info(
-        "Listening for multicast messages on address "
-            + clientsMulticastAddress
-            + ", "
-            + "network interface "
-            + networkInterface
-            + " and port "
-            + clientsPort
-            + "...");
+    LOGGER.info("Listening on address http://" + host + ":" + port + "...");
 
     // Handle messages
-    while (!socket.isClosed() && isRunning) {
+    while (!unicastSocket.isClosed() && isRunning) {
       byte[] buffer = new byte[BUFFER_SIZE];
 
       DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
-      socket.receive(packet);
+      unicastSocket.receive(packet);
 
       String message =
           new String(
@@ -121,7 +116,6 @@ public class Server implements Callable<Integer> {
       // TODO: Handle error
       return;
     }
-
     Client.Message command = null;
     try {
       command = Client.Message.valueOf(parts[0]);
@@ -133,6 +127,7 @@ public class Server implements Callable<Integer> {
       case Client.Message.USER_JOIN:
         handleUserJoin(parts[1], address, port);
         break;
+      case null:
       default:
         LOGGER.warning("Unknown command, skipping...");
     }
@@ -141,18 +136,32 @@ public class Server implements Callable<Integer> {
   private void handleUserJoin(String username, InetAddress address, int port) {
     if (connectedClients.containsKey(username)) {
       sendToClient(address, port, Message.USER_JOIN_ERR + " Username already taken");
+      return;
     }
     connectedClients.put(username, new ClientInfo(address, port));
-    sendToClient(address, port, Message.USER_JOIN_OK.toString());
+    sendToClient(address, port, Message.OK.toString());
+    broadcast(Message.NEW_USER + " " + username);
   }
 
   private void sendToClient(InetAddress address, int port, String message) {
-    try {
-      byte[] buffer = message.getBytes();
+    try (DatagramSocket socket = new DatagramSocket()) {
+      byte[] buffer = message.getBytes(StandardCharsets.UTF_8);
       DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, port);
       socket.send(packet);
+      LOGGER.info("Sent message to client " + address + ":" + port + ": " + message);
     } catch (IOException e) {
-      LOGGER.warning("Failed to send message to client: " + e.getMessage());
+      LOGGER.severe("Error sending message to client: " + e.getMessage());
+    }
+  }
+
+  private void broadcast(String message) {
+    try {
+      byte[] buffer = message.getBytes(StandardCharsets.UTF_8);
+      DatagramPacket packet =
+          new DatagramPacket(buffer, buffer.length, multicastGroup, multicastPort);
+      multicastSocket.send(packet);
+    } catch (IOException e) {
+      LOGGER.severe("Error broadcasting message to clients: " + e.getMessage());
     }
   }
 }
