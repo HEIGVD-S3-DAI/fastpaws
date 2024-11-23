@@ -29,7 +29,10 @@ public class Server implements Callable<Integer> {
       defaultValue = "230.0.0.0")
   protected String multicastAddress;
 
-  @CommandLine.Option(names = {"-H", "--host"}, description = "Server host (default: ${DEFAULT-VALUE}).", defaultValue = "localhost")
+  @CommandLine.Option(
+      names = {"-H", "--host"},
+      description = "Server host (default: ${DEFAULT-VALUE}).",
+      defaultValue = "localhost")
   protected String host;
 
   @CommandLine.Option(

@@ -22,20 +22,20 @@ The client intitiates the request.
 **Request:**
 
 ```
-USER_PROFILE <name>
+USER_JOIN <name>
 ```
 
 **Response:**
 
 ```
-USER_PROFILE OK
+OK
 USER_PROFILE ERR <msg>
 ```
 
 **Response to other all Clients:**
 
 ```
-USER_JOIN <name>
+USER_NEW <name>
 ```
 
 ### Prepare the Game 
@@ -134,9 +134,9 @@ actor Server
 
 == Joining the Server ==
 
-Client1 -> Server: USER_PROFILE <name>
-Server -> Client1: USER_PROFILE OK
-Server -> Client2: USER_JOIN <name>
+Client1 -> Server: USER_JOIN <name>
+Server -> Client1: OK
+Server -> Client2: USER_NEW <name>
 
 == Preparing the Game ==
 
@@ -173,7 +173,7 @@ actor Server
 
 == Joining the Server (Error) ==
 
-Client1 -> Server: USER_PROFILE <name>
-Server -> Client1: USER_PROFILE ERR <msg>
+Client1 -> Server: USER_JOIN <name>
+Server -> Client1: USER_JOIN_ERR <msg>
 @enduml
 ```

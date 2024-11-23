@@ -32,7 +32,10 @@ public class Client implements Callable<Integer> {
       defaultValue = "230.0.0.0")
   protected String serverMulticastAddress;
 
-  @CommandLine.Option(names = {"-H", "--serverHost"}, description = "Server host (default: ${DEFAULT-VALUE}).", defaultValue = "localhost")
+  @CommandLine.Option(
+      names = {"-H", "--serverHost"},
+      description = "Server host (default: ${DEFAULT-VALUE}).",
+      defaultValue = "localhost")
   protected String serverHost;
 
   @CommandLine.Option(
@@ -141,7 +144,8 @@ public class Client implements Callable<Integer> {
     NetworkInterface netInterface = NetworkInterface.getByName(networkInterface);
     multicastSocket.joinGroup(multicastGroup, netInterface);
 
-    LOGGER.info("Listening multicast on address http://" + serverHost + ":" + serverMulticastPort + "...");
+    LOGGER.info(
+        "Listening multicast on address http://" + serverHost + ":" + serverMulticastPort + "...");
 
     while (true) {
       byte[] buffer = new byte[BUFFER_SIZE];
