@@ -1,15 +1,10 @@
 package ch.heigvd.dai.commands;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.MulticastSocket;
-import java.net.NetworkInterface;
-import java.net.SocketTimeoutException;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.logging.Logger;
@@ -22,7 +17,7 @@ public class Client implements Callable<Integer> {
   private static final int BUFFER_SIZE = 1024;
   private static final int TIMEOUT_MS = 5000;
 
-  private Scanner scanner = new Scanner(System.in);
+  private final Scanner scanner = new Scanner(System.in);
 
   @CommandLine.ParentCommand private Root parent;
 
@@ -56,8 +51,6 @@ public class Client implements Callable<Integer> {
       required = true)
   protected String networkInterface;
 
-  MulticastSocket multicastSocket;
-
   public enum Message {
     USER_JOIN,
     USER_READY,
@@ -65,19 +58,46 @@ public class Client implements Callable<Integer> {
     USER_QUIT,
   }
 
+  private static class Player {
+    boolean isReady = false;
+    int score = 0;
+  }
+
+  private static class State {
+    HashMap<String, Player> players;
+    String selfUsername;
+    boolean isGameFinished = false;
+
+    State(String selfUsername) {
+      this.selfUsername = selfUsername;
+      players = new HashMap<>();
+      addPlayer(selfUsername);
+    }
+
+    void addPlayer(String username) {
+      players.put(username, new Player());
+    }
+
+    void setPlayerReady(String username) throws IllegalAccessException {
+      if (!players.containsKey(username)) {
+        throw new IllegalAccessException("User does not exits");
+      }
+      players.get(username).isReady = true;
+    }
+  }
+
+  private State state;
+
   @Override
   public Integer call() {
+    int exit = 0;
     join();
     try {
       startListening();
-    } catch (IOException e) {
-      LOGGER.severe("Error conntecting to the server: " + e.getMessage());
-    } finally {
-      if (multicastSocket != null && !multicastSocket.isClosed()) {
-        multicastSocket.close();
-      }
+    } catch (Exception e) {
+      exit = 1;
     }
-    return 0;
+    return exit;
   }
 
   private void join() {
@@ -99,6 +119,7 @@ public class Client implements Callable<Integer> {
       switch (command) {
         case Server.Message.OK:
           LOGGER.info("Successfully joined the server!");
+          state = new State(username);
           success = true;
           break;
         case Server.Message.USER_JOIN_ERR:
@@ -137,22 +158,54 @@ public class Client implements Callable<Integer> {
     return "";
   }
 
-  private void startListening() throws IOException {
-    multicastSocket = new MulticastSocket(serverMulticastPort);
-    InetAddress multicastAddress = InetAddress.getByName(serverMulticastAddress);
-    InetSocketAddress multicastGroup = new InetSocketAddress(multicastAddress, serverMulticastPort);
-    NetworkInterface netInterface = NetworkInterface.getByName(networkInterface);
-    multicastSocket.joinGroup(multicastGroup, netInterface);
+  private void startListening() throws Exception {
+    try (MulticastSocket multicastSocket = new MulticastSocket(serverMulticastPort)) {
 
-    LOGGER.info(
-        "Listening multicast on address http://" + serverHost + ":" + serverMulticastPort + "...");
+      InetAddress multicastAddress = InetAddress.getByName(serverMulticastAddress);
+      InetSocketAddress multicastGroup =
+          new InetSocketAddress(multicastAddress, serverMulticastPort);
+      NetworkInterface netInterface = NetworkInterface.getByName(networkInterface);
+      multicastSocket.joinGroup(multicastGroup, netInterface);
 
-    while (true) {
-      byte[] buffer = new byte[BUFFER_SIZE];
-      DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-      multicastSocket.receive(packet);
-      String message = new String(packet.getData(), packet.getOffset(), packet.getLength());
-      System.out.println("Received multicast: " + message);
+      LOGGER.info(
+          "Listening multicast on address http://"
+              + serverHost
+              + ":"
+              + serverMulticastPort
+              + "...");
+
+      while (!multicastSocket.isClosed()) {
+        byte[] buffer = new byte[BUFFER_SIZE];
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+        multicastSocket.receive(packet);
+        String message = new String(packet.getData(), packet.getOffset(), packet.getLength());
+        handleMulticastMessage(message);
+      }
+    } catch (IOException e) {
+      LOGGER.severe("Error conntecting to the server: " + e.getMessage());
+      throw e;
+    }
+  }
+
+  private void handleMulticastMessage(String message) throws IllegalAccessException {
+    String[] parts = message.split("\\s+");
+
+    Server.Message command = null;
+    try {
+      command = Server.Message.valueOf(parts[0]);
+    } catch (Exception e) {
+      // Do nothing
+    }
+
+    switch (command) {
+      case Server.Message.NEW_USER:
+        state.addPlayer(parts[1]);
+        break;
+      case Server.Message.USER_READY:
+        state.setPlayerReady(parts[1]);
+      case null:
+      default:
+        break;
     }
   }
 }

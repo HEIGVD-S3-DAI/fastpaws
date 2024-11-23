@@ -71,6 +71,7 @@ public class Server implements Callable<Integer> {
     OK,
     USER_JOIN_ERR,
     NEW_USER,
+    USER_READY,
     START_GAME,
     END_GAME,
   }
