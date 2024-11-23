@@ -1,10 +1,10 @@
 package ch.heigvd.dai.commands;
 
+import ch.heigvd.dai.logic.client.ClientProtocol;
+import ch.heigvd.dai.logic.client.ClientState;
+import ch.heigvd.dai.logic.shared.Message;
 import java.io.IOException;
-import java.net.*;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.logging.Logger;
@@ -12,13 +12,6 @@ import picocli.CommandLine;
 
 @CommandLine.Command(name = "client", description = "Start a client to connect to the server")
 public class Client implements Callable<Integer> {
-
-  private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
-  private static final int BUFFER_SIZE = 1024;
-  private static final int TIMEOUT_MS = 5000;
-
-  private final Scanner scanner = new Scanner(System.in);
-
   @CommandLine.ParentCommand private Root parent;
 
   @CommandLine.Option(
@@ -51,78 +44,61 @@ public class Client implements Callable<Integer> {
       required = true)
   protected String networkInterface;
 
-  public enum Message {
+  public enum Command {
     USER_JOIN,
     USER_READY,
     USERS_PROGRESS,
     USER_QUIT,
   }
 
-  private static class Player {
-    boolean isReady = false;
-    int score = 0;
-  }
+  private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
 
-  private static class State {
-    HashMap<String, Player> players;
-    String selfUsername;
-    boolean isGameFinished = false;
-
-    State(String selfUsername) {
-      this.selfUsername = selfUsername;
-      players = new HashMap<>();
-      addPlayer(selfUsername);
-    }
-
-    void addPlayer(String username) {
-      players.put(username, new Player());
-    }
-
-    void setPlayerReady(String username) throws IllegalAccessException {
-      if (!players.containsKey(username)) {
-        throw new IllegalAccessException("User does not exits");
-      }
-      players.get(username).isReady = true;
-    }
-  }
-
-  private State state;
+  private final Scanner scanner = new Scanner(System.in);
+  private ClientProtocol protocol;
+  private ClientState state;
 
   @Override
   public Integer call() {
-    int exit = 0;
-    join();
     try {
-      startListening();
+      protocol =
+          new ClientProtocol(
+              serverHost,
+              serverPort,
+              serverMulticastAddress,
+              serverMulticastPort,
+              networkInterface);
+      join();
+      protocol.listenToMulticast(this::handleMulticastMessage);
     } catch (Exception e) {
-      exit = 1;
+      LOGGER.severe("Error in client: " + e.getMessage());
+      return 1;
     }
-    return exit;
+    return 0;
   }
 
-  private void join() {
+  private void join() throws IOException {
     boolean success = false;
     do {
       System.out.print("Enter your username: ");
       String username = scanner.nextLine();
 
-      String res = sendToServer(Message.USER_JOIN, username);
-      String[] parts = res.split("\\s+");
+      Message res = protocol.sendWithResponseUnicast(Command.USER_JOIN, username);
+      String[] parts = res.getParts();
 
-      Server.Message command = null;
+      Server.Command command = null;
       try {
-        command = Server.Message.valueOf(parts[0]);
+        command = Server.Command.valueOf(parts[0]);
       } catch (Exception e) {
         // Do nothing
       }
 
       switch (command) {
-        case Server.Message.OK:
+        case OK:
           LOGGER.info("Successfully joined the server!");
-          state = new State(username);
+          state = new ClientState(username);
           success = true;
           break;
-        case Server.Message.USER_JOIN_ERR:
+        case USER_JOIN_ERR:
           String err = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));
           LOGGER.info("Could not join server: " + err);
           break;
@@ -133,79 +109,27 @@ public class Client implements Callable<Integer> {
     } while (!success);
   }
 
-  private String sendToServer(Message command, String message) {
-    try (DatagramSocket socket = new DatagramSocket()) {
-      InetAddress serverAddress = InetAddress.getByName(serverHost);
-
-      String messageToSend = command + " " + message;
-      byte[] buffer = messageToSend.getBytes(StandardCharsets.UTF_8);
-
-      DatagramPacket packet = new DatagramPacket(buffer, buffer.length, serverAddress, serverPort);
-
-      socket.send(packet);
-      // Receive
-      socket.setSoTimeout(TIMEOUT_MS);
-      buffer = new byte[BUFFER_SIZE];
-      packet = new DatagramPacket(buffer, buffer.length);
-      socket.receive(packet);
-      return new String(
-          packet.getData(), packet.getOffset(), packet.getLength(), StandardCharsets.UTF_8);
-    } catch (SocketTimeoutException e) {
-      LOGGER.severe("Timeout waiting for server response");
-    } catch (IOException e) {
-      LOGGER.severe("Error receiving server response: " + e.getMessage());
-    }
-    return "";
-  }
-
-  private void startListening() throws Exception {
-    try (MulticastSocket multicastSocket = new MulticastSocket(serverMulticastPort)) {
-
-      InetAddress multicastAddress = InetAddress.getByName(serverMulticastAddress);
-      InetSocketAddress multicastGroup =
-          new InetSocketAddress(multicastAddress, serverMulticastPort);
-      NetworkInterface netInterface = NetworkInterface.getByName(networkInterface);
-      multicastSocket.joinGroup(multicastGroup, netInterface);
-
-      LOGGER.info(
-          "Listening multicast on address http://"
-              + serverHost
-              + ":"
-              + serverMulticastPort
-              + "...");
-
-      while (!multicastSocket.isClosed()) {
-        byte[] buffer = new byte[BUFFER_SIZE];
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-        multicastSocket.receive(packet);
-        String message = new String(packet.getData(), packet.getOffset(), packet.getLength());
-        handleMulticastMessage(message);
-      }
-    } catch (IOException e) {
-      LOGGER.severe("Error conntecting to the server: " + e.getMessage());
-      throw e;
-    }
-  }
-
-  private void handleMulticastMessage(String message) throws IllegalAccessException {
+  private void handleMulticastMessage(String message) {
     String[] parts = message.split("\\s+");
+    LOGGER.info("Received message: " + message);
 
-    Server.Message command = null;
+    Server.Command command = null;
     try {
-      command = Server.Message.valueOf(parts[0]);
+      command = Server.Command.valueOf(parts[0]);
     } catch (Exception e) {
-      // Do nothing
+      LOGGER.warning("Received unknown command: " + message);
     }
 
     switch (command) {
-      case Server.Message.NEW_USER:
+      case NEW_USER:
         state.addPlayer(parts[1]);
         break;
-      case Server.Message.USER_READY:
+      case USER_READY:
         state.setPlayerReady(parts[1]);
+        break;
       case null:
       default:
-        break;
+        LOGGER.warning("Unhandled multicast message: " + message);
     }
   }
 }
