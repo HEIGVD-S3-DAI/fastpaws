@@ -15,5 +15,7 @@ public class ServerState extends BaseState {
     return connectedClients.containsKey(username);
   }
 
-  public void registerClient(String username, ClientInfo clientInfo) {}
+  public void registerClient(String username, ClientInfo clientInfo) {
+    connectedClients.put(username, clientInfo);
+  }
 }
