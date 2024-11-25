@@ -14,6 +14,6 @@ public class Message {
   }
 
   public String[] getParts() {
-    return str.split("\\s+");
+    return str.split(" ");
   }
 }

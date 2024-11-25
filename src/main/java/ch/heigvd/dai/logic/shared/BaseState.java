@@ -6,6 +6,7 @@ public abstract class BaseState {
   public enum GameState {
     WAITING,
     RUNNING,
+    FINISHED,
   }
 
   public boolean isGameWaiting() {
