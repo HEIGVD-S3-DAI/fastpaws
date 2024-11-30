@@ -71,9 +71,7 @@ public class Client implements Callable<Integer> {
       join();
       // Signal the server when quitting
       Runtime.getRuntime().addShutdownHook(new Thread(() -> quit()));
-      while (!state.getSelfIsReady()) {
-        ready();
-      }
+      setReady();
       protocol.listenToMulticast(this::handleMulticastMessage);
     } catch (Exception e) {
       LOGGER.severe("Error in client: " + e.getMessage());
@@ -125,32 +123,28 @@ public class Client implements Callable<Integer> {
     }
   }
 
-  private void ready() throws Exception {
-    System.out.print("Are you ready ? [Yes/No] \n");
-    String ready = scanner.nextLine();
-    if (ready.equals("Yes")) {
-      state.setPlayerReady(state.getSelfUsername());
-      Message res = protocol.sendWithResponseUnicast(Command.USER_READY, state.getSelfUsername());
+  private void setReady() throws Exception {
+    System.out.println("Press ENTER when your are ready...");
+    scanner.nextLine(); // Wait enter key
+    state.setPlayerReady(state.getSelfUsername());
+    Message res = protocol.sendWithResponseUnicast(Command.USER_READY, state.getSelfUsername());
 
-      LOGGER.info("Received message: " + res.str);
-      String[] parts = res.getParts();
-      Server.Command command = null;
-      try {
-        command = Server.Command.valueOf(parts[0]);
-      } catch (Exception e) {
-        // Do nothing
+    LOGGER.info("Received message: " + res.str);
+    String[] parts = res.getParts();
+    Server.Command command = null;
+    try {
+      command = Server.Command.valueOf(parts[0]);
+    } catch (Exception e) {
+      // Do nothing
+    }
+    if (command == Server.Command.CURRENT_USERS_READY) {
+      for (int i = 1; i < parts.length; i++) {
+        if (state.playerExists(parts[i])) continue;
+        state.addPlayer(parts[i]);
+        state.setPlayerReady(parts[i]);
       }
-      switch (command) {
-        case CURRENT_USERS_READY:
-          for (int i = 1; i < parts.length; i++) {
-            state.addPlayer(parts[i]);
-            state.setPlayerReady(parts[i]);
-          }
-          return;
-        case null:
-        default:
-          LOGGER.warning("Unknown message.");
-      }
+    } else {
+      LOGGER.warning("Unknown message.");
     }
   }
 
