@@ -53,6 +53,7 @@ public class Server implements Callable<Integer> {
     USER_READY,
     START_GAME,
     END_GAME,
+    ERROR,
   }
 
   @Override
@@ -94,6 +95,15 @@ public class Server implements Callable<Integer> {
       case USER_JOIN:
         handleUserJoin(parts[1], message.address, message.port);
         break;
+      case USER_READY:
+        handleUserReady(parts[1], message.address, message.port);
+        break;
+      case USERS_PROGRESS:
+        //todo
+        break;
+      case USER_QUIT:
+        //todo
+        break;
       default:
         LOGGER.warning("Unhandled command: " + command);
     }
@@ -109,5 +119,14 @@ public class Server implements Callable<Integer> {
     state.registerClient(username, new ClientInfo(address, port));
     protocol.sendUnicast(new Message(Command.OK.toString(), address, port));
     protocol.broadcast(Command.NEW_USER + " " + username);
+  }
+
+  private void handleUserReady(String username, InetAddress address, int port) {
+    if (state.usernameExists(username)) {
+      protocol.broadcast(Command.USER_READY + " " + username);
+      state.setUserReady(username);
+    } else {
+      protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
+    }
   }
 }

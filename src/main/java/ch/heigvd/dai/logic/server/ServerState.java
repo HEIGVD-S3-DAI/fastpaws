@@ -18,4 +18,6 @@ public class ServerState extends BaseState {
   public void registerClient(String username, ClientInfo clientInfo) {
     connectedClients.put(username, clientInfo);
   }
+
+  public void setUserReady(String username) { connectedClients.get(username).player.setReady(true); }
 }
