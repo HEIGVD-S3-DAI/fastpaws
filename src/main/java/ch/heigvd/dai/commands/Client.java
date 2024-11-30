@@ -134,7 +134,7 @@ public class Client implements Callable<Integer> {
         handleUpdateUsersProgress(parts);
         break;
       case END_GAME:
-        //todo
+        handleEndGame(parts[1]);
         break;
       case ERROR:
         //todo
@@ -148,6 +148,14 @@ public class Client implements Callable<Integer> {
   private void handleUpdateUsersProgress(String[] message) {
     for(int i = 1; i + 1 < message.length; i+=2) {
       state.updatePlayerScore(message[i], Integer.parseInt(message[i+1]));
+    }
+  }
+
+  private void handleEndGame(String winner) {
+    if (winner.equals(state.getSelfUsername())) {
+      LOGGER.info("End of the game. You're the winner !!!\n");
+    } else {
+      LOGGER.info("End of the game, the winner is : " + winner);
     }
   }
 }

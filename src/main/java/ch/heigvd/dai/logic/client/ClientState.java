@@ -9,6 +9,10 @@ public class ClientState extends BaseState {
   HashMap<String, Player> players;
   String selfUsername;
 
+  public String getSelfUsername() {
+    return selfUsername;
+  }
+
   public ClientState(String selfUsername) {
     this.selfUsername = selfUsername;
     players = new HashMap<>();
