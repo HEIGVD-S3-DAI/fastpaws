@@ -20,4 +20,6 @@ public class ServerState extends BaseState {
   }
 
   public void setUserReady(String username) { connectedClients.get(username).player.setReady(true); }
+
+  public void updateUserProgress(String username, int score) { connectedClients.get(username).player.setScore(score); }
 }

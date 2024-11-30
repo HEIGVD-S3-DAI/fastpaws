@@ -99,7 +99,7 @@ public class Server implements Callable<Integer> {
         handleUserReady(parts[1], message.address, message.port);
         break;
       case USERS_PROGRESS:
-        //todo
+        handleUserProgress(parts[1], message.address, message.port, Integer.parseInt(parts[2]));
         break;
       case USER_QUIT:
         //todo
@@ -127,6 +127,16 @@ public class Server implements Callable<Integer> {
       state.setUserReady(username);
     } else {
       protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
+    }
+  }
+
+  private void handleUserProgress(String username, InetAddress address, int port, int score) {
+    if (!state.usernameExists(username)) {
+      protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
+    } else if (score < 0) { //todo : or score > maxscore
+      protocol.sendUnicast(new Message(Command.ERROR + " " + "Invalid score.", address, port));
+    } else {
+      state.updateUserProgress(username, score);
     }
   }
 }
