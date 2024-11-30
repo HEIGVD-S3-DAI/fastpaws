@@ -142,7 +142,7 @@ public class Client implements Callable<Integer> {
         handleUserDelete(parts[1]);
         break;
       case ERROR:
-        LOGGER.warning("Error : " + message.split("\\s+",2)[1]);
+        LOGGER.warning("Error : " + message.split("\\s+", 2)[1]);
         break;
       case null:
       default:
@@ -152,11 +152,12 @@ public class Client implements Callable<Integer> {
 
   private void handleStartGame(String text) {
     state.setGameState(BaseState.GameState.RUNNING);
-    //todo : create game depending of the implementation of Game class
+    // todo : create game depending of the implementation of Game class
   }
+
   private void handleUpdateUsersProgress(String[] message) {
-    for(int i = 1; i + 1 < message.length; i+=2) {
-      state.updatePlayerScore(message[i], Integer.parseInt(message[i+1]));
+    for (int i = 1; i + 1 < message.length; i += 2) {
+      state.updatePlayerScore(message[i], Integer.parseInt(message[i + 1]));
     }
   }
 
@@ -173,5 +174,4 @@ public class Client implements Callable<Integer> {
     state.resetPlayers();
     state.setGameState(BaseState.GameState.FINISHED);
   }
-
 }

@@ -97,28 +97,28 @@ public class Server implements Callable<Integer> {
 
     switch (command) {
       case USER_JOIN:
-        if(parts.length != 2) {
+        if (parts.length != 2) {
           handleIllegalNumberOfArguments(message.address, message.port);
         } else {
           handleUserJoin(parts[1], message.address, message.port);
         }
         break;
       case USER_READY:
-        if(parts.length != 2) {
+        if (parts.length != 2) {
           handleIllegalNumberOfArguments(message.address, message.port);
         } else {
           handleUserReady(parts[1], message.address, message.port);
         }
         break;
       case USER_PROGRESS:
-        if(parts.length != 3) {
+        if (parts.length != 3) {
           handleIllegalNumberOfArguments(message.address, message.port);
         } else {
           handleUserProgress(parts[1], message.address, message.port, Integer.parseInt(parts[2]));
         }
         break;
       case USER_QUIT:
-        if(parts.length != 2) {
+        if (parts.length != 2) {
           handleIllegalNumberOfArguments(message.address, message.port);
         } else {
           handleUserQuit(parts[1], message.address, message.port);
@@ -131,7 +131,8 @@ public class Server implements Callable<Integer> {
   }
 
   private void handleIllegalNumberOfArguments(InetAddress address, int port) {
-    protocol.sendUnicast(new Message(Command.ERROR + " Illegal number of arguments.", address, port));
+    protocol.sendUnicast(
+        new Message(Command.ERROR + " Illegal number of arguments.", address, port));
   }
 
   private void handleUnknownCommand(InetAddress address, int port) {
@@ -154,8 +155,9 @@ public class Server implements Callable<Integer> {
     if (state.usernameExists(username)) {
       protocol.broadcast(Command.USER_READY + " " + username);
       state.setUserReady(username);
-      if(state.areAllUsersReady()) {
-        // todo : protocol.broadcast(Command.START_GAME + " " + getGameText()); when we will have a function implementing Game
+      if (state.areAllUsersReady()) {
+        // todo : protocol.broadcast(Command.START_GAME + " " + getGameText()); when we will have a
+        // function implementing Game
         state.setGameState(BaseState.GameState.RUNNING);
       }
     } else {
@@ -166,12 +168,13 @@ public class Server implements Callable<Integer> {
   private void handleUserProgress(String username, InetAddress address, int port, int score) {
     if (!state.usernameExists(username)) {
       protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
-    } else if (score < 0) { //todo : or score > maxscore
+    } else if (score < 0) { // todo : or score > maxscore
       protocol.sendUnicast(new Message(Command.ERROR + " " + "Invalid score.", address, port));
     } else {
-      if(state.isGameRunning()) {
+      if (state.isGameRunning()) {
         state.updateUserProgress(username, score);
-        // todo : if score == maxscore { send END_GAME <username>; state.setGameState(BaseState.GameState.FINISHED); reset players }
+        // todo : if score == maxscore { send END_GAME <username>;
+        // state.setGameState(BaseState.GameState.FINISHED); reset players }
         // todo : do we broadcast the progress at every update ?
       }
     }

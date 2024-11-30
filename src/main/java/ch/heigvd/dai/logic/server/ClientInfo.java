@@ -1,7 +1,6 @@
 package ch.heigvd.dai.logic.server;
 
 import ch.heigvd.dai.logic.shared.Player;
-
 import java.net.InetAddress;
 
 public class ClientInfo {

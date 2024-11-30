@@ -19,18 +19,24 @@ public class ServerState extends BaseState {
     connectedClients.put(username, clientInfo);
   }
 
-  public void setUserReady(String username) { connectedClients.get(username).player.setReady(true); }
+  public void setUserReady(String username) {
+    connectedClients.get(username).player.setReady(true);
+  }
 
   public boolean areAllUsersReady() {
-    for(ClientInfo clientInfo : connectedClients.values()) {
-      if(!clientInfo.player.isReady()) {
+    for (ClientInfo clientInfo : connectedClients.values()) {
+      if (!clientInfo.player.isReady()) {
         return false;
       }
     }
     return true;
   }
 
-  public void updateUserProgress(String username, int score) { connectedClients.get(username).player.setScore(score); }
+  public void updateUserProgress(String username, int score) {
+    connectedClients.get(username).player.setScore(score);
+  }
 
-  public void removeUser(String username) { connectedClients.remove(username); }
+  public void removeUser(String username) {
+    connectedClients.remove(username);
+  }
 }

@@ -2,7 +2,6 @@ package ch.heigvd.dai.logic.client;
 
 import ch.heigvd.dai.logic.shared.BaseState;
 import ch.heigvd.dai.logic.shared.Player;
-
 import java.util.HashMap;
 
 public class ClientState extends BaseState {
@@ -23,9 +22,15 @@ public class ClientState extends BaseState {
     players.put(username, new Player());
   }
 
-  public void removePlayer(String username) { players.remove(username); }
+  public void removePlayer(String username) {
+    players.remove(username);
+  }
 
-  public void resetPlayers() { for (Player player : players.values()) { player.reset(); }}
+  public void resetPlayers() {
+    for (Player player : players.values()) {
+      player.reset();
+    }
+  }
 
   public void setPlayerReady(String username) {
     if (!players.containsKey(username)) {
