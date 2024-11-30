@@ -47,7 +47,7 @@ public class Client implements Callable<Integer> {
   public enum Command {
     USER_JOIN,
     USER_READY,
-    USERS_PROGRESS,
+    USER_PROGRESS,
     USER_QUIT,
   }
 
@@ -126,6 +126,18 @@ public class Client implements Callable<Integer> {
         break;
       case USER_READY:
         state.setPlayerReady(parts[1]);
+        break;
+      case START_GAME:
+        //todo
+        break;
+      case ALL_USERS_PROGRESS:
+        //todo
+        break;
+      case END_GAME:
+        //todo
+        break;
+      case ERROR:
+        //todo
         break;
       case null:
       default:

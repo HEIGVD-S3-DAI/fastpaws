@@ -52,6 +52,7 @@ public class Server implements Callable<Integer> {
     NEW_USER,
     USER_READY,
     START_GAME,
+    ALL_USERS_PROGRESS,
     END_GAME,
     DEL_USER,
     ERROR,
@@ -108,7 +109,7 @@ public class Server implements Callable<Integer> {
           handleUserReady(parts[1], message.address, message.port);
         }
         break;
-      case USERS_PROGRESS:
+      case USER_PROGRESS:
         if(parts.length != 3) {
           handleIllegalNumberOfArguments(message.address, message.port);
         } else {
