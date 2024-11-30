@@ -2,6 +2,7 @@ package ch.heigvd.dai.commands;
 
 import ch.heigvd.dai.logic.client.ClientProtocol;
 import ch.heigvd.dai.logic.client.ClientState;
+import ch.heigvd.dai.logic.shared.BaseState;
 import ch.heigvd.dai.logic.shared.Message;
 import java.io.IOException;
 import java.util.Arrays;
@@ -96,6 +97,7 @@ public class Client implements Callable<Integer> {
         case OK:
           LOGGER.info("Successfully joined the server!");
           state = new ClientState(username);
+          state.setGameState(BaseState.GameState.WAITING);
           success = true;
           break;
         case USER_JOIN_ERR:
@@ -128,7 +130,7 @@ public class Client implements Callable<Integer> {
         state.setPlayerReady(parts[1]);
         break;
       case START_GAME:
-        //todo
+        handleStartGame(parts[1]);
         break;
       case ALL_USERS_PROGRESS:
         handleUpdateUsersProgress(parts);
@@ -148,6 +150,10 @@ public class Client implements Callable<Integer> {
     }
   }
 
+  private void handleStartGame(String text) {
+    state.setGameState(BaseState.GameState.RUNNING);
+    //todo : create game depending of the implementation of Game class
+  }
   private void handleUpdateUsersProgress(String[] message) {
     for(int i = 1; i + 1 < message.length; i+=2) {
       state.updatePlayerScore(message[i], Integer.parseInt(message[i+1]));
@@ -164,6 +170,8 @@ public class Client implements Callable<Integer> {
     } else {
       LOGGER.info("End of the game, the winner is : " + winner);
     }
+    state.resetPlayers();
+    state.setGameState(BaseState.GameState.FINISHED);
   }
 
 }
