@@ -131,7 +131,7 @@ public class Client implements Callable<Integer> {
         //todo
         break;
       case ALL_USERS_PROGRESS:
-        //todo
+        handleUpdateUsersProgress(parts);
         break;
       case END_GAME:
         //todo
@@ -142,6 +142,12 @@ public class Client implements Callable<Integer> {
       case null:
       default:
         LOGGER.warning("Unhandled multicast message: " + message);
+    }
+  }
+
+  private void handleUpdateUsersProgress(String[] message) {
+    for(int i = 1; i + 1 < message.length; i+=2) {
+      state.updatePlayerScore(message[i], Integer.parseInt(message[i+1]));
     }
   }
 }
