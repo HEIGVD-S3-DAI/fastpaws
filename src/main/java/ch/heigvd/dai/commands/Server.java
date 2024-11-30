@@ -151,7 +151,7 @@ public class Server implements Callable<Integer> {
 
     state.registerClient(username, new ClientInfo(address, port));
     protocol.sendUnicast(new Message(Command.OK.toString(), address, port));
-    protocol.broadcast(Command.NEW_USER + " " + username);
+    protocol.multicast(Command.NEW_USER + " " + username);
   }
 
   private void handleUserReady(String username, InetAddress address, int port) {
@@ -166,7 +166,7 @@ public class Server implements Callable<Integer> {
       protocol.sendUnicast(
           new Message(Command.CURRENT_USERS_READY + currentUsersReady, address, port));
 
-      protocol.broadcast(Command.USER_READY + " " + username);
+      protocol.multicast(Command.USER_READY + " " + username);
       if (state.getNumPlayers() >= TypingGame.MIN_PLAYERS_FOR_GAME && state.areAllUsersReady()) {
         LOGGER.info("Starting game in 5 seconds...");
         try {
@@ -174,7 +174,7 @@ public class Server implements Callable<Integer> {
         } catch (InterruptedException e) {
           throw new RuntimeException(e); // We want to crash the server, something is going wrong
         }
-        protocol.broadcast(Command.START_GAME + " " + TypingGame.getParagraph());
+        protocol.multicast(Command.START_GAME + " " + TypingGame.getParagraph());
         state.setGameState(BaseState.GameState.RUNNING);
       }
     } else {
@@ -192,7 +192,7 @@ public class Server implements Callable<Integer> {
         state.setPlayerProgress(username, progress);
         if (progress >= 100) {
           state.setGameState(BaseState.GameState.FINISHED);
-          protocol.broadcast(Command.END_GAME + " " + username);
+          protocol.multicast(Command.END_GAME + " " + username);
         }
         // todo : do we broadcast the progress at every update ?
         // leo: we should probably do in another thread while the game is running,
@@ -206,7 +206,7 @@ public class Server implements Callable<Integer> {
     if (!state.usernameExists(username)) {
       protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
     } else {
-      protocol.broadcast(Command.DEL_USER + " " + username);
+      protocol.multicast(Command.DEL_USER + " " + username);
       state.removeUser(username);
     }
   }

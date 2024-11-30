@@ -65,15 +65,15 @@ public class ServerProtocol {
     }
   }
 
-  public void broadcast(String message) {
+  public void multicast(String message) {
     try {
       byte[] buffer = message.getBytes(StandardCharsets.UTF_8);
       DatagramPacket packet =
           new DatagramPacket(buffer, buffer.length, multicastGroup, multicastPort);
       multicastSocket.send(packet);
-      LOGGER.info("Sent broadcast to clients: " + message);
+      LOGGER.info("Sent multicast to clients: " + message);
     } catch (IOException e) {
-      LOGGER.severe("Error broadcasting message to clients: " + e.getMessage());
+      LOGGER.severe("Error multicasting message to clients: " + e.getMessage());
     }
   }
 
