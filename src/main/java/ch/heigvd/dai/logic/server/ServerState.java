@@ -23,6 +23,10 @@ public class ServerState extends BaseState {
     connectedClients.get(username).player.setReady(true);
   }
 
+  public boolean isUserReady(String username) {
+    return connectedClients.get(username).player.isReady();
+  }
+
   public boolean areAllUsersReady() {
     for (ClientInfo clientInfo : connectedClients.values()) {
       if (!clientInfo.player.isReady()) {

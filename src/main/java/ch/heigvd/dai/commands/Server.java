@@ -52,6 +52,7 @@ public class Server implements Callable<Integer> {
     USER_JOIN_ERR,
     NEW_USER,
     USER_READY,
+    CURRENT_USERS_READY,
     START_GAME,
     ALL_USERS_PROGRESS,
     END_GAME,
@@ -153,8 +154,17 @@ public class Server implements Callable<Integer> {
 
   private void handleUserReady(String username, InetAddress address, int port) {
     if (state.usernameExists(username)) {
-      protocol.broadcast(Command.USER_READY + " " + username);
       state.setUserReady(username);
+      String currentUsersReady = "";
+      for (String playerUsername : state.getConnectedClients().keySet()) {
+        if (state.isUserReady(playerUsername)) {
+          currentUsersReady += " " + playerUsername;
+        }
+      }
+      protocol.sendUnicast(
+          new Message(Command.CURRENT_USERS_READY + currentUsersReady, address, port));
+
+      protocol.broadcast(Command.USER_READY + " " + username);
       if (state.areAllUsersReady()) {
         // todo : protocol.broadcast(Command.START_GAME + " " + getGameText()); when we will have a
         // function implementing Game

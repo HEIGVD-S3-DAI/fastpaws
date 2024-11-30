@@ -69,6 +69,9 @@ public class Client implements Callable<Integer> {
               serverMulticastPort,
               networkInterface);
       join();
+      while (!state.getSelfIsReady()) {
+        ready();
+      }
       protocol.listenToMulticast(this::handleMulticastMessage);
     } catch (Exception e) {
       LOGGER.severe("Error in client: " + e.getMessage());
@@ -111,6 +114,35 @@ public class Client implements Callable<Integer> {
     } while (!success);
   }
 
+  private void ready() throws Exception {
+    System.out.print("Are you ready ? [Yes/No] \n");
+    String ready = scanner.nextLine();
+    if (ready.equals("Yes")) {
+      state.setPlayerReady(state.getSelfUsername());
+      Message res = protocol.sendWithResponseUnicast(Command.USER_READY, state.getSelfUsername());
+
+      LOGGER.info("Received message: " + res.str);
+      String[] parts = res.getParts();
+      Server.Command command = null;
+      try {
+        command = Server.Command.valueOf(parts[0]);
+      } catch (Exception e) {
+        // Do nothing
+      }
+      switch (command) {
+        case CURRENT_USERS_READY:
+          for (int i = 1; i < parts.length; i++) {
+            state.addPlayer(parts[i]);
+            state.setPlayerReady(parts[i]);
+          }
+          return;
+        case null:
+        default:
+          LOGGER.warning("Unknown message.");
+      }
+    }
+  }
+
   private void handleMulticastMessage(String message) {
     String[] parts = message.split("\\s+");
     LOGGER.info("Received message: " + message);
@@ -124,10 +156,10 @@ public class Client implements Callable<Integer> {
 
     switch (command) {
       case NEW_USER:
-        state.addPlayer(parts[1]);
+        if (!parts[1].equals(state.getSelfUsername())) state.addPlayer(parts[1]);
         break;
       case USER_READY:
-        state.setPlayerReady(parts[1]);
+        handleUserReady(parts[1]);
         break;
       case START_GAME:
         handleStartGame(parts[1]);
@@ -148,6 +180,16 @@ public class Client implements Callable<Integer> {
       default:
         LOGGER.warning("Unhandled multicast message: " + message);
     }
+  }
+
+  private void handleUserReady(String username) {
+    if (username.equals(state.getSelfUsername())) {
+      return;
+    }
+    if (!state.playerExists(username)) {
+      state.addPlayer(username);
+    }
+    state.setPlayerReady(username);
   }
 
   private void handleStartGame(String text) {

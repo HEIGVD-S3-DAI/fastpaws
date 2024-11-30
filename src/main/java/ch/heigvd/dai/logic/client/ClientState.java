@@ -8,14 +8,22 @@ public class ClientState extends BaseState {
   HashMap<String, Player> players;
   String selfUsername;
 
-  public String getSelfUsername() {
-    return selfUsername;
-  }
-
   public ClientState(String selfUsername) {
     this.selfUsername = selfUsername;
     players = new HashMap<>();
     addPlayer(selfUsername);
+  }
+
+  public String getSelfUsername() {
+    return selfUsername;
+  }
+
+  public boolean getSelfIsReady() {
+    return players.get(selfUsername).isReady();
+  }
+
+  public boolean playerExists(String username) {
+    return players.containsKey(username);
   }
 
   public void addPlayer(String username) {
