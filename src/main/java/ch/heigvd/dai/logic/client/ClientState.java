@@ -23,6 +23,8 @@ public class ClientState extends BaseState {
     players.put(username, new Player());
   }
 
+  public void removePlayer(String username) { players.remove(username); }
+
   public void setPlayerReady(String username) {
     if (!players.containsKey(username)) {
       throw new RuntimeException("User does not exist");

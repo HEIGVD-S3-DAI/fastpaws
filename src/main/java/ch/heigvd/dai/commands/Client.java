@@ -136,8 +136,11 @@ public class Client implements Callable<Integer> {
       case END_GAME:
         handleEndGame(parts[1]);
         break;
+      case DEL_USER:
+        handleUserDelete(parts[1]);
+        break;
       case ERROR:
-        //todo
+        LOGGER.warning("Error : " + message.split("\\s+",2)[1]);
         break;
       case null:
       default:
@@ -151,6 +154,10 @@ public class Client implements Callable<Integer> {
     }
   }
 
+  private void handleUserDelete(String username) {
+    state.removePlayer(username);
+  }
+
   private void handleEndGame(String winner) {
     if (winner.equals(state.getSelfUsername())) {
       LOGGER.info("End of the game. You're the winner !!!\n");
@@ -158,4 +165,5 @@ public class Client implements Callable<Integer> {
       LOGGER.info("End of the game, the winner is : " + winner);
     }
   }
+
 }
