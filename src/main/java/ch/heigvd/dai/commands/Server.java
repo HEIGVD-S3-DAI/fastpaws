@@ -89,25 +89,51 @@ public class Server implements Callable<Integer> {
       command = Client.Command.valueOf(parts[0]);
     } catch (IllegalArgumentException e) {
       LOGGER.warning("Received unknown command: " + parts[0]);
+      handleUnknownCommand(message.address, message.port);
       return;
     }
 
     switch (command) {
       case USER_JOIN:
-        handleUserJoin(parts[1], message.address, message.port);
+        if(parts.length != 2) {
+          handleIllegalNumberOfArguments(message.address, message.port);
+        } else {
+          handleUserJoin(parts[1], message.address, message.port);
+        }
         break;
       case USER_READY:
-        handleUserReady(parts[1], message.address, message.port);
+        if(parts.length != 2) {
+          handleIllegalNumberOfArguments(message.address, message.port);
+        } else {
+          handleUserReady(parts[1], message.address, message.port);
+        }
         break;
       case USERS_PROGRESS:
-        handleUserProgress(parts[1], message.address, message.port, Integer.parseInt(parts[2]));
+        if(parts.length != 3) {
+          handleIllegalNumberOfArguments(message.address, message.port);
+        } else {
+          handleUserProgress(parts[1], message.address, message.port, Integer.parseInt(parts[2]));
+        }
         break;
       case USER_QUIT:
-        handleUserQuit(parts[1], message.address, message.port);
+        if(parts.length != 2) {
+          handleIllegalNumberOfArguments(message.address, message.port);
+        } else {
+          handleUserQuit(parts[1], message.address, message.port);
+        }
         break;
       default:
         LOGGER.warning("Unhandled command: " + command);
+        handleUnknownCommand(message.address, message.port);
     }
+  }
+
+  private void handleIllegalNumberOfArguments(InetAddress address, int port) {
+    protocol.sendUnicast(new Message(Command.ERROR + " Illegal number of arguments.", address, port));
+  }
+
+  private void handleUnknownCommand(InetAddress address, int port) {
+    protocol.sendUnicast(new Message(Command.ERROR + " Unknown command.", address, port));
   }
 
   private void handleUserJoin(String username, InetAddress address, int port) {
