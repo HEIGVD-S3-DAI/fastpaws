@@ -3,6 +3,7 @@ package ch.heigvd.dai.commands;
 import ch.heigvd.dai.logic.server.ClientInfo;
 import ch.heigvd.dai.logic.server.ServerProtocol;
 import ch.heigvd.dai.logic.server.ServerState;
+import ch.heigvd.dai.logic.shared.BaseState;
 import ch.heigvd.dai.logic.shared.Message;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -153,6 +154,10 @@ public class Server implements Callable<Integer> {
     if (state.usernameExists(username)) {
       protocol.broadcast(Command.USER_READY + " " + username);
       state.setUserReady(username);
+      if(state.areAllUsersReady()) {
+        // todo : protocol.broadcast(Command.START_GAME + " " + getGameText()); when we will have a function implementing Game
+        state.setGameState(BaseState.GameState.RUNNING);
+      }
     } else {
       protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
     }
@@ -164,8 +169,11 @@ public class Server implements Callable<Integer> {
     } else if (score < 0) { //todo : or score > maxscore
       protocol.sendUnicast(new Message(Command.ERROR + " " + "Invalid score.", address, port));
     } else {
-      state.updateUserProgress(username, score);
-      //todo : do we broadcast the progress at every update ?
+      if(state.isGameRunning()) {
+        state.updateUserProgress(username, score);
+        // todo : if score == maxscore { send END_GAME <username>; state.setGameState(BaseState.GameState.FINISHED); reset players }
+        // todo : do we broadcast the progress at every update ?
+      }
     }
   }
 
