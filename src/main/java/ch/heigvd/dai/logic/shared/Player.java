@@ -2,7 +2,7 @@ package ch.heigvd.dai.logic.shared;
 
 public class Player {
   private boolean isReady = false;
-  private int score = 0;
+  private int progress = 0;
 
   public boolean isReady() {
     return isReady;
@@ -12,16 +12,16 @@ public class Player {
     isReady = ready;
   }
 
-  public int getScore() {
-    return score;
+  public int getProgress() {
+    return progress;
   }
 
-  public void setScore(int score) {
-    this.score = score;
+  public void setProgress(int progress) {
+    this.progress = progress;
   }
 
   public void reset() {
     isReady = false;
-    score = 0;
+    progress = 0;
   }
 }

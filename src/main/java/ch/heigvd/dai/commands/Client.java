@@ -167,7 +167,7 @@ public class Client implements Callable<Integer> {
         handleUserReady(parts[1]);
         break;
       case START_GAME:
-        handleStartGame(parts[1]);
+        handleStartGame(message.split("\\s+", 2)[1]);
         break;
       case ALL_USERS_PROGRESS:
         handleUpdateUsersProgress(parts);
@@ -199,12 +199,15 @@ public class Client implements Callable<Integer> {
 
   private void handleStartGame(String text) {
     state.setGameState(BaseState.GameState.RUNNING);
-    // todo : create game depending of the implementation of Game class
+    System.out.println(text);
+    System.out.print("> ");
+    String userInput = scanner.nextLine();
+    protocol.sendWithResponseUnicast(Command.USER_PROGRESS, "100");
   }
 
   private void handleUpdateUsersProgress(String[] message) {
     for (int i = 1; i + 1 < message.length; i += 2) {
-      state.updatePlayerScore(message[i], Integer.parseInt(message[i + 1]));
+      state.setPlayerProgress(message[i], Integer.parseInt(message[i + 1]));
     }
   }
 

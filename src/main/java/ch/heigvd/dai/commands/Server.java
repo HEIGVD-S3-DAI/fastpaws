@@ -3,11 +3,13 @@ package ch.heigvd.dai.commands;
 import ch.heigvd.dai.logic.server.ClientInfo;
 import ch.heigvd.dai.logic.server.ServerProtocol;
 import ch.heigvd.dai.logic.server.ServerState;
+import ch.heigvd.dai.logic.server.TypingGame;
 import ch.heigvd.dai.logic.shared.BaseState;
 import ch.heigvd.dai.logic.shared.Message;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import picocli.CommandLine;
 
@@ -165,10 +167,14 @@ public class Server implements Callable<Integer> {
           new Message(Command.CURRENT_USERS_READY + currentUsersReady, address, port));
 
       protocol.broadcast(Command.USER_READY + " " + username);
-      if (state.areAllUsersReady()) {
-        // todo : protocol.broadcast(Command.START_GAME + " " + getGameText()); when we
-        // will have a
-        // function implementing Game
+      if (state.getNumPlayers() >= TypingGame.MIN_PLAYERS_FOR_GAME && state.areAllUsersReady()) {
+        LOGGER.info("Starting game in 5 seconds...");
+        try {
+          TimeUnit.SECONDS.sleep(5);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e); // We want to crash the server, something is going wrong
+        }
+        protocol.broadcast(Command.START_GAME + " " + TypingGame.getParagraph());
         state.setGameState(BaseState.GameState.RUNNING);
       }
     } else {
@@ -176,17 +182,22 @@ public class Server implements Callable<Integer> {
     }
   }
 
-  private void handleUserProgress(String username, InetAddress address, int port, int score) {
+  private void handleUserProgress(String username, InetAddress address, int port, int progress) {
     if (!state.usernameExists(username)) {
       protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
-    } else if (score < 0) { // todo : or score > maxscore
+    } else if (progress < 0) {
       protocol.sendUnicast(new Message(Command.ERROR + " " + "Invalid score.", address, port));
     } else {
       if (state.isGameRunning()) {
-        state.updateUserProgress(username, score);
-        // todo : if score == maxscore { send END_GAME <username>;
-        // state.setGameState(BaseState.GameState.FINISHED); reset players }
+        state.setPlayerProgress(username, progress);
+        if (progress >= 100) {
+          state.setGameState(BaseState.GameState.FINISHED);
+          protocol.broadcast(Command.END_GAME + " " + username);
+        }
         // todo : do we broadcast the progress at every update ?
+        // leo: we should probably do in another thread while the game is running,
+        // broadcast every
+        // n seconds to all players
       }
     }
   }

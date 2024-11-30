@@ -47,7 +47,7 @@ public class ClientState extends BaseState {
     players.get(username).setReady(true);
   }
 
-  public void updatePlayerScore(String username, int score) {
-    players.get(username).setScore(score);
+  public void setPlayerProgress(String username, int progress) {
+    players.get(username).setProgress(progress);
   }
 }

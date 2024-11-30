@@ -36,11 +36,15 @@ public class ServerState extends BaseState {
     return true;
   }
 
-  public void updateUserProgress(String username, int score) {
-    connectedClients.get(username).player.setScore(score);
+  public int getNumPlayers() {
+    return connectedClients.size();
   }
 
   public void removeUser(String username) {
     connectedClients.remove(username);
+  }
+
+  public void setPlayerProgress(String username, int progress) {
+    connectedClients.get(username).player.setProgress(progress);
   }
 }
