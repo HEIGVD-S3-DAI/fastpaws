@@ -53,6 +53,7 @@ public class Server implements Callable<Integer> {
     USER_READY,
     START_GAME,
     END_GAME,
+    DEL_USER,
     ERROR,
   }
 
@@ -102,7 +103,7 @@ public class Server implements Callable<Integer> {
         handleUserProgress(parts[1], message.address, message.port, Integer.parseInt(parts[2]));
         break;
       case USER_QUIT:
-        //todo
+        handleUserQuit(parts[1], message.address, message.port);
         break;
       default:
         LOGGER.warning("Unhandled command: " + command);
@@ -137,6 +138,17 @@ public class Server implements Callable<Integer> {
       protocol.sendUnicast(new Message(Command.ERROR + " " + "Invalid score.", address, port));
     } else {
       state.updateUserProgress(username, score);
+      //todo : do we broadcast the progress at every update ?
+    }
+  }
+
+  private void handleUserQuit(String username, InetAddress address, int port) {
+    if (!state.usernameExists(username)) {
+      protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
+    } else {
+      protocol.broadcast(Command.DEL_USER + " " + username);
+      state.removeUser(username);
+      protocol.closeSockets();
     }
   }
 }
