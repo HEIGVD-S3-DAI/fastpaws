@@ -71,6 +71,7 @@ public class ServerProtocol {
       DatagramPacket packet =
           new DatagramPacket(buffer, buffer.length, multicastGroup, multicastPort);
       multicastSocket.send(packet);
+      LOGGER.info("Sent broadcast to clients: " + message);
     } catch (IOException e) {
       LOGGER.severe("Error broadcasting message to clients: " + e.getMessage());
     }

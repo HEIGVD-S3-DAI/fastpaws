@@ -35,6 +35,19 @@ public class ClientProtocol {
     this.networkInterface = NetworkInterface.getByName(networkInterface);
   }
 
+  public void sendUnicast(Client.Command command, String message) throws IOException {
+    try (DatagramSocket socket = new DatagramSocket()) {
+      String msg = command.toString() + " " + message;
+      byte[] buffer = msg.getBytes(StandardCharsets.UTF_8);
+
+      DatagramPacket packet = new DatagramPacket(buffer, buffer.length, serverAddress, serverPort);
+      socket.send(packet);
+    } catch (IOException e) {
+      LOGGER.severe("Error sending message" + e.getMessage());
+      throw e;
+    }
+  }
+
   public Message sendWithResponseUnicast(Client.Command command, String message)
       throws IOException {
     try (DatagramSocket socket = new DatagramSocket()) {

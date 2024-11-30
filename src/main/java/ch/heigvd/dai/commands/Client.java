@@ -69,6 +69,8 @@ public class Client implements Callable<Integer> {
               serverMulticastPort,
               networkInterface);
       join();
+      // Signal the server when quitting
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> quit()));
       while (!state.getSelfIsReady()) {
         ready();
       }
@@ -112,6 +114,15 @@ public class Client implements Callable<Integer> {
           LOGGER.severe("Unknown message");
       }
     } while (!success);
+  }
+
+  private void quit() {
+    try {
+      protocol.sendUnicast(Command.USER_QUIT, state.getSelfUsername());
+    } catch (IOException e) {
+      LOGGER.severe("Failed to disconnect from server");
+      // TODO: For now we ignore, but how should we handle this?
+    }
   }
 
   private void ready() throws Exception {

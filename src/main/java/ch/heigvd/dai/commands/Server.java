@@ -166,7 +166,8 @@ public class Server implements Callable<Integer> {
 
       protocol.broadcast(Command.USER_READY + " " + username);
       if (state.areAllUsersReady()) {
-        // todo : protocol.broadcast(Command.START_GAME + " " + getGameText()); when we will have a
+        // todo : protocol.broadcast(Command.START_GAME + " " + getGameText()); when we
+        // will have a
         // function implementing Game
         state.setGameState(BaseState.GameState.RUNNING);
       }
@@ -196,7 +197,6 @@ public class Server implements Callable<Integer> {
     } else {
       protocol.broadcast(Command.DEL_USER + " " + username);
       state.removeUser(username);
-      protocol.closeSockets();
     }
   }
 }
