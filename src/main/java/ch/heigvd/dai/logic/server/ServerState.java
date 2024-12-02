@@ -47,4 +47,10 @@ public class ServerState extends BaseState {
   public void setPlayerProgress(String username, int progress) {
     connectedClients.get(username).player.setProgress(progress);
   }
+
+  public void resetPlayers() {
+    for (ClientInfo clientInfo : connectedClients.values()) {
+      clientInfo.player.reset();
+    }
+  }
 }

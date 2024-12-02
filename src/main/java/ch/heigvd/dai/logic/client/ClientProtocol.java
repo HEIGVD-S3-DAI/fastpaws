@@ -19,6 +19,7 @@ public class ClientProtocol {
   private final int serverPort;
   private final InetAddress multicastAddress;
   private final int multicastPort;
+  private MulticastSocket multicastSocket;
   private final NetworkInterface networkInterface;
 
   public ClientProtocol(
@@ -76,7 +77,8 @@ public class ClientProtocol {
   }
 
   public void listenToMulticast(Consumer<String> messageHandler) throws IOException {
-    try (MulticastSocket multicastSocket = new MulticastSocket(multicastPort)) {
+    this.multicastSocket = new MulticastSocket(multicastPort);
+    try {
       multicastSocket.joinGroup(
           new InetSocketAddress(multicastAddress, multicastPort), networkInterface);
 
@@ -95,6 +97,20 @@ public class ClientProtocol {
     } catch (IOException e) {
       LOGGER.severe("Error during multicast listening: " + e.getMessage());
       throw e;
+    } finally {
+      if (multicastSocket != null && !multicastSocket.isClosed()) {
+        multicastSocket.close();
+      }
+    }
+  }
+
+  public void closeMulticast() {
+    try {
+      multicastSocket.leaveGroup(
+          new InetSocketAddress(multicastAddress, multicastPort), networkInterface);
+      multicastSocket.close();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }

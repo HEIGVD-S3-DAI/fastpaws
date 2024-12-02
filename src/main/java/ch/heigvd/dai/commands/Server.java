@@ -53,6 +53,7 @@ public class Server implements Callable<Integer> {
   public enum Command {
     OK,
     USER_JOIN_ERR,
+    WAIT,
     NEW_USER,
     USER_READY,
     CURRENT_USERS_READY,
@@ -149,10 +150,14 @@ public class Server implements Callable<Integer> {
           new Message(Command.USER_JOIN_ERR + " Username already taken", address, port));
       return;
     }
-
-    state.registerClient(username, new ClientInfo(address, port));
-    protocol.sendUnicast(new Message(Command.OK.toString(), address, port));
-    protocol.multicast(Command.NEW_USER + " " + username);
+    if (!state.isGameRunning()) {
+      state.setGameState(BaseState.GameState.WAITING);
+      state.registerClient(username, new ClientInfo(address, port));
+      protocol.sendUnicast(new Message(Command.OK.toString(), address, port));
+      protocol.multicast(Command.NEW_USER + " " + username);
+    } else {
+      protocol.sendUnicast(new Message(Command.WAIT.toString(), address, port));
+    }
   }
 
   private void handleUserReady(String username, InetAddress address, int port) {
@@ -195,6 +200,7 @@ public class Server implements Callable<Integer> {
         if (progress == 100) {
           state.setGameState(BaseState.GameState.FINISHED);
           protocol.multicast(Command.END_GAME + " " + username);
+          state.resetPlayers();
         }
       }
     }

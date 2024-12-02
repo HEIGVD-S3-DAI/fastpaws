@@ -107,6 +107,10 @@ public class Client implements Callable<Integer> {
           String err = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));
           LOGGER.info("Could not join server: " + err);
           break;
+        case WAIT:
+          LOGGER.info("Waiting for the current game to finish...");
+          protocol.listenToMulticast(this::waitForNextGame);
+          break;
         case null:
         default:
           LOGGER.severe("Unknown message");
@@ -145,6 +149,21 @@ public class Client implements Callable<Integer> {
       }
     } else {
       LOGGER.warning("Unknown message.");
+    }
+  }
+
+  private void waitForNextGame(String message) {
+    String[] parts = message.split("\\s+");
+    LOGGER.info("Received message: " + message);
+
+    Server.Command command = null;
+    try {
+      command = Server.Command.valueOf(parts[0]);
+    } catch (Exception e) {
+      LOGGER.warning("Received unknown command: " + message);
+    }
+    if (command == Server.Command.END_GAME) {
+      protocol.closeMulticast();
     }
   }
 
@@ -203,7 +222,7 @@ public class Client implements Callable<Integer> {
     System.out.print("> ");
     String userInput = scanner.nextLine();
     try {
-      protocol.sendUnicast(Command.USER_PROGRESS, state.getSelfUsername() + " " + "50");
+      protocol.sendUnicast(Command.USER_PROGRESS, state.getSelfUsername() + " " + "100");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -227,5 +246,10 @@ public class Client implements Callable<Integer> {
     }
     state.resetPlayers();
     state.setGameState(BaseState.GameState.FINISHED);
+    try {
+      setReady();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 }
