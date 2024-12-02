@@ -29,13 +29,14 @@ USER_JOIN <name>
 
 ```
 OK
-USER_PROFILE ERR <msg>
+USER_JOIN_ERR <msg>
+WAIT
 ```
 
 **Response to other all Clients:**
 
 ```
-USER_NEW <name>
+NEW_USER <name>
 ```
 
 ### Prepare the Game 
@@ -46,6 +47,12 @@ The client intitiates the request.
 
 ```
 USER_READY <name>
+```
+
+**Response:**
+
+```
+CURRENT_USERS_READY <name> <name> <name> ...
 ```
 
 **Response to all other clients:**
@@ -82,7 +89,7 @@ USER_PROGRESS <name> <score>
 **Response:**
 
 ```
-USERS_PROGRESS <name> <score> <name> <score> <name> <score> <name> <score> ...
+ALL_USERS_PROGRESS <name> <score> <name> <score> <name> <score> <name> <score> ...
 ```
 
 ### End the Game 
@@ -112,7 +119,17 @@ USER_QUIT <name>
 **Response to all other clients:**
 
 ```
-USER_QUIT <name>
+DEL_USER <name>
+```
+
+### General error message
+
+For all generic errors, the server can send:
+
+**Request:**
+
+```
+ERROR <errorMessage>
 ```
 
 ## Sequence Diagram
