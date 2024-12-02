@@ -13,7 +13,7 @@
 
 ## Commands
 
-- `score` is defined as number of letters completed
+- `progress` is defined as the percentage of completed letters.
 
 ### Join the Sever
 
@@ -83,13 +83,13 @@ The client intitiates the request at every valid keypress from the client.
 **Request:**
 
 ```
-USER_PROGRESS <name> <score> 
+USER_PROGRESS <name> <progress> 
 ```
 
 **Response:**
 
 ```
-ALL_USERS_PROGRESS <name> <score> <name> <score> <name> <score> <name> <score> ...
+ALL_USERS_PROGRESS <name> <progress> <name> <progress> <name> <progress> <name> <progress> ...
 ```
 
 ### End the Game 
@@ -167,9 +167,9 @@ Server -> Client2: START_GAME <text> ...
 
 == Updating Progress ==
 
-Client1 -> Server: USER_PROGRESS <name> <score>
-Server -> Client1: USERS_PROGRESS <name> <score> <name> <score> ...
-Server -> Client2: USERS_PROGRESS <name> <score> <name> <score> ...
+Client1 -> Server: USER_PROGRESS <name> <progress>
+Server -> Client1: USERS_PROGRESS <name> <progress> <name> <progress> ...
+Server -> Client2: USERS_PROGRESS <name> <progress> <name> <progress> ...
 
 == Ending the Game ==
 
