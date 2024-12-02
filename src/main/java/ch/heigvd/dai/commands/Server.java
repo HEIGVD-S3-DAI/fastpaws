@@ -219,7 +219,7 @@ public class Server implements Callable<Integer> {
       try {
         TimeUnit.SECONDS.sleep(2);
       } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+        throw new RuntimeException(e); // We want to crash the server, something is going wrong
       }
     }
   }

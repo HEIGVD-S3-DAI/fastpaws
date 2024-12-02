@@ -224,7 +224,7 @@ public class Client implements Callable<Integer> {
     try {
       protocol.sendUnicast(Command.USER_PROGRESS, state.getSelfUsername() + " " + "100");
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      LOGGER.severe("Failed to update progress");
     }
   }
 
@@ -249,7 +249,7 @@ public class Client implements Callable<Integer> {
     try {
       setReady();
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException(e); // Crash the client
     }
   }
 }
