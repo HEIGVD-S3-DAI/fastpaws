@@ -203,7 +203,7 @@ public class Client implements Callable<Integer> {
     System.out.print("> ");
     String userInput = scanner.nextLine();
     try {
-      protocol.sendUnicast(Command.USER_PROGRESS, state.getSelfUsername() + " " + "100");
+      protocol.sendUnicast(Command.USER_PROGRESS, state.getSelfUsername() + " " + "50");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

@@ -8,6 +8,7 @@ import ch.heigvd.dai.logic.shared.BaseState;
 import ch.heigvd.dai.logic.shared.Message;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -176,6 +177,7 @@ public class Server implements Callable<Integer> {
         }
         protocol.multicast(Command.START_GAME + " " + TypingGame.getParagraph());
         state.setGameState(BaseState.GameState.RUNNING);
+        new Thread(this::multicastProgress).start();
       }
     } else {
       protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
@@ -194,10 +196,24 @@ public class Server implements Callable<Integer> {
           state.setGameState(BaseState.GameState.FINISHED);
           protocol.multicast(Command.END_GAME + " " + username);
         }
-        // todo : do we broadcast the progress at every update ?
-        // leo: we should probably do in another thread while the game is running,
-        // broadcast every
-        // n seconds to all players
+      }
+    }
+  }
+
+  private void multicastProgress() {
+    while (state.isGameRunning()) {
+      StringBuilder sb = new StringBuilder();
+      for (Map.Entry<String, ClientInfo> entry : state.getConnectedClients().entrySet()) {
+        sb.append(" ");
+        sb.append(entry.getKey());
+        sb.append(" ");
+        sb.append(entry.getValue().player.getProgress());
+      }
+      protocol.multicast(Command.ALL_USERS_PROGRESS + sb.toString());
+      try {
+        TimeUnit.SECONDS.sleep(2);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
       }
     }
   }
@@ -208,6 +224,9 @@ public class Server implements Callable<Integer> {
     } else {
       protocol.multicast(Command.DEL_USER + " " + username);
       state.removeUser(username);
+      if (state.getConnectedClients().isEmpty()) {
+        state.setGameState(BaseState.GameState.FINISHED);
+      }
     }
   }
 }
