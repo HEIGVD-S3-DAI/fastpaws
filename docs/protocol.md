@@ -13,7 +13,7 @@
 
 ## Commands
 
-- `score` is defined as number of letters completed
+- `progress` is defined as the percentage of completed letters.
 
 ### Join the Sever
 
@@ -22,20 +22,21 @@ The client intitiates the request.
 **Request:**
 
 ```
-USER_PROFILE <name>
+USER_JOIN <name>
 ```
 
 **Response:**
 
 ```
-USER_PROFILE OK
-USER_PROFILE ERR <msg>
+OK
+USER_JOIN_ERR <msg>
+WAIT
 ```
 
 **Response to other all Clients:**
 
 ```
-USER_JOIN <name>
+NEW_USER <name>
 ```
 
 ### Prepare the Game 
@@ -46,6 +47,12 @@ The client intitiates the request.
 
 ```
 USER_READY <name>
+```
+
+**Response:**
+
+```
+CURRENT_USERS_READY <name> <name> <name> ...
 ```
 
 **Response to all other clients:**
@@ -76,13 +83,13 @@ The client intitiates the request at every valid keypress from the client.
 **Request:**
 
 ```
-USER_PROGRESS <name> <score> 
+USER_PROGRESS <name> <progress> 
 ```
 
 **Response:**
 
 ```
-USERS_PROGRESS <name> <score> <name> <score> <name> <score> <name> <score> ...
+ALL_USERS_PROGRESS <name> <progress> <name> <progress> <name> <progress> <name> <progress> ...
 ```
 
 ### End the Game 
@@ -112,7 +119,17 @@ USER_QUIT <name>
 **Response to all other clients:**
 
 ```
-USER_QUIT <name>
+DEL_USER <name>
+```
+
+### General error message
+
+For all generic errors, the server can send:
+
+**Request:**
+
+```
+ERROR <errorMessage>
 ```
 
 ## Sequence Diagram
@@ -134,9 +151,9 @@ actor Server
 
 == Joining the Server ==
 
-Client1 -> Server: USER_PROFILE <name>
-Server -> Client1: USER_PROFILE OK
-Server -> Client2: USER_JOIN <name>
+Client1 -> Server: USER_JOIN <name>
+Server -> Client1: OK
+Server -> Client2: USER_NEW <name>
 
 == Preparing the Game ==
 
@@ -150,9 +167,9 @@ Server -> Client2: START_GAME <text> ...
 
 == Updating Progress ==
 
-Client1 -> Server: USER_PROGRESS <name> <score>
-Server -> Client1: USERS_PROGRESS <name> <score> <name> <score> ...
-Server -> Client2: USERS_PROGRESS <name> <score> <name> <score> ...
+Client1 -> Server: USER_PROGRESS <name> <progress>
+Server -> Client1: USERS_PROGRESS <name> <progress> <name> <progress> ...
+Server -> Client2: USERS_PROGRESS <name> <progress> <name> <progress> ...
 
 == Ending the Game ==
 
@@ -173,7 +190,7 @@ actor Server
 
 == Joining the Server (Error) ==
 
-Client1 -> Server: USER_PROFILE <name>
-Server -> Client1: USER_PROFILE ERR <msg>
+Client1 -> Server: USER_JOIN <name>
+Server -> Client1: USER_JOIN_ERR <msg>
 @enduml
 ```
