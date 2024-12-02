@@ -185,12 +185,12 @@ public class Server implements Callable<Integer> {
   private void handleUserProgress(String username, InetAddress address, int port, int progress) {
     if (!state.usernameExists(username)) {
       protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
-    } else if (progress < 0) {
+    } else if (progress < 0 || progress > 100) {
       protocol.sendUnicast(new Message(Command.ERROR + " " + "Invalid score.", address, port));
     } else {
       if (state.isGameRunning()) {
         state.setPlayerProgress(username, progress);
-        if (progress >= 100) {
+        if (progress == 100) {
           state.setGameState(BaseState.GameState.FINISHED);
           protocol.multicast(Command.END_GAME + " " + username);
         }

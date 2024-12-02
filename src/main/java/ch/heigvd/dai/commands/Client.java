@@ -202,7 +202,11 @@ public class Client implements Callable<Integer> {
     System.out.println(text);
     System.out.print("> ");
     String userInput = scanner.nextLine();
-    protocol.sendWithResponseUnicast(Command.USER_PROGRESS, "100");
+    try {
+      protocol.sendUnicast(Command.USER_PROGRESS, state.getSelfUsername() + " " + "100");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private void handleUpdateUsersProgress(String[] message) {
