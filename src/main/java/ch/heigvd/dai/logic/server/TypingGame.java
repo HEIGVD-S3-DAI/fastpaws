@@ -9,6 +9,6 @@ public class TypingGame {
   public static String getParagraph() {
     Random random = new Random();
     int indexChosen = random.nextInt(PARAGRAPHS.length);
-    return PARAGRAPHS[indexChosen];
+    return PARAGRAPHS[indexChosen].toLowerCase();
   }
 }
