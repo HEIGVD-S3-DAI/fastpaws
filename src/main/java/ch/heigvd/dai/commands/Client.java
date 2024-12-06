@@ -2,6 +2,7 @@ package ch.heigvd.dai.commands;
 
 import ch.heigvd.dai.logic.client.ClientProtocol;
 import ch.heigvd.dai.logic.client.ClientState;
+import ch.heigvd.dai.logic.client.ui.GameInterface;
 import ch.heigvd.dai.logic.shared.BaseState;
 import ch.heigvd.dai.logic.shared.Message;
 import java.io.IOException;
@@ -57,6 +58,7 @@ public class Client implements Callable<Integer> {
   private final Scanner scanner = new Scanner(System.in);
   private ClientProtocol protocol;
   private ClientState state;
+  private GameInterface game;
 
   @Override
   public Integer call() {
@@ -72,7 +74,10 @@ public class Client implements Callable<Integer> {
       // Signal the server when quitting
       Runtime.getRuntime().addShutdownHook(new Thread(() -> quit()));
       setReady();
+      game = new GameInterface(state);
+      game.start();
       protocol.listenToMulticast(this::handleMulticastMessage);
+      game.end();
     } catch (Exception e) {
       LOGGER.severe("Error in client: " + e.getMessage());
       return 1;
@@ -218,14 +223,13 @@ public class Client implements Callable<Integer> {
 
   private void handleStartGame(String text) {
     state.setGameState(BaseState.GameState.RUNNING);
-    System.out.println(text);
-    System.out.print("> ");
-    String userInput = scanner.nextLine();
-    try {
-      protocol.sendUnicast(Command.USER_PROGRESS, state.getSelfUsername() + " " + "100");
-    } catch (IOException e) {
-      LOGGER.severe("Failed to update progress");
-    }
+    game.setText(text);
+    // try {
+    // protocol.sendUnicast(Command.USER_PROGRESS, state.getSelfUsername() + " " +
+    // "100");
+    // } catch (IOException e) {
+    // LOGGER.severe("Failed to update progress");
+    // }
   }
 
   private void handleUpdateUsersProgress(String[] message) {

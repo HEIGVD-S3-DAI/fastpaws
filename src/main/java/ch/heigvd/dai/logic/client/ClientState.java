@@ -18,6 +18,10 @@ public class ClientState extends BaseState {
     return selfUsername;
   }
 
+  public HashMap<String, Player> getPlayers() {
+    return players;
+  }
+
   public boolean getSelfIsReady() {
     return players.get(selfUsername).isReady();
   }

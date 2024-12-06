@@ -17,6 +17,10 @@ public abstract class BaseState {
     return gameState == GameState.RUNNING;
   }
 
+  public boolean isGameFinished() {
+    return gameState == GameState.FINISHED;
+  }
+
   public void setGameState(GameState gameState) {
     this.gameState = gameState;
   }
