@@ -190,6 +190,7 @@ public class Server implements Callable<Integer> {
   }
 
   private void handleUserProgress(String username, InetAddress address, int port, int progress) {
+    LOGGER.info("USER_PROGRESS: " + username + " " + progress);
     if (!state.usernameExists(username)) {
       protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
     } else if (progress < 0 || progress > 100) {

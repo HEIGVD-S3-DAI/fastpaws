@@ -74,7 +74,7 @@ public class Client implements Callable<Integer> {
       // Signal the server when quitting
       Runtime.getRuntime().addShutdownHook(new Thread(() -> quit()));
       setReady();
-      game = new GameInterface(state);
+      game = new GameInterface(state, protocol);
       game.start();
       protocol.listenToMulticast(this::handleMulticastMessage);
       game.end();
