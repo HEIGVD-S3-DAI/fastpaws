@@ -2,13 +2,17 @@ package ch.heigvd.dai.logic.client.ui;
 
 import ch.heigvd.dai.logic.client.ClientState;
 import ch.heigvd.dai.logic.shared.Player;
+import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.input.KeyStroke;
+import com.googlecode.lanterna.input.KeyType;
 import com.googlecode.lanterna.screen.Screen;
 import com.googlecode.lanterna.screen.TerminalScreen;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
 import com.googlecode.lanterna.terminal.Terminal;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -17,7 +21,9 @@ public class GameInterface extends Thread {
   private static final Logger LOGGER = Logger.getLogger(GameInterface.class.getName());
   private boolean running = true;
   private final ClientState state;
-  private String[] text;
+  private String text;
+  private int cursorIndex = 0;
+  private final StringBuilder userText = new StringBuilder();
 
   private static final String[] HELLO_ASCII = {
     "   ____         __  ___                ",
@@ -49,7 +55,7 @@ public class GameInterface extends Thread {
         if (keyStroke != null) {
           handleKeyInput(keyStroke);
         }
-        render(screen);
+        render(terminal, screen);
         Thread.sleep(100); // Example of a simple delay in the loop
       }
 
@@ -62,7 +68,16 @@ public class GameInterface extends Thread {
   }
 
   private void handleKeyInput(KeyStroke keyStroke) {
-    // TODO: Not implemented
+    if (keyStroke.getKeyType() == KeyType.Backspace && cursorIndex > 0) {
+      cursorIndex--;
+      userText.deleteCharAt(cursorIndex);
+      return;
+    }
+    Character character = keyStroke.getCharacter();
+    if (character != null && cursorIndex < text.length()) {
+      userText.insert(cursorIndex, character);
+      cursorIndex++;
+    }
   }
 
   public void end() {
@@ -70,15 +85,15 @@ public class GameInterface extends Thread {
   }
 
   public void setText(String text) {
-    this.text = text.split("\n");
+    this.text = text;
   }
 
-  private void render(Screen screen) throws IOException {
+  private void render(Terminal terminal, Screen screen) throws IOException {
     TextGraphics tg = screen.newTextGraphics();
     tg.fill(' ');
 
     if (state.isGameWaiting()) {
-      diplayHello(tg);
+      displayHello(tg);
       tg.putString(0, 6, "Players:");
       tg.putString(0, 7, "  * " + state.getSelfUsername() + " (me)");
       int offset = 8;
@@ -93,19 +108,59 @@ public class GameInterface extends Thread {
         offset++;
       }
     } else if (state.isGameRunning()) {
-      for (int i = 0; i < text.length; ++i) {
-        tg.putString(0, i, text[i]);
-        // TODO: Not implemented: Use terminal.getTerminalSize() to split the text by
-        // words to fit on the screen
+      String[] lines = splitText(terminal);
+      int currentCharIndex = 0;
+      for (int i = 0; i < lines.length; ++i) {
+        for (int j = 0; j < lines[i].length(); ++j) {
+          if (currentCharIndex < cursorIndex) {
+            if (userText.charAt(currentCharIndex) != lines[i].charAt(j)) {
+              tg.setForegroundColor(TextColor.ANSI.RED_BRIGHT);
+            } else {
+              tg.setForegroundColor(TextColor.ANSI.WHITE_BRIGHT);
+            }
+          } else {
+            tg.setForegroundColor(TextColor.ANSI.BLACK_BRIGHT);
+          }
+          tg.putString(j, i, String.valueOf(lines[i].charAt(j)));
+          currentCharIndex++;
+        }
       }
     }
     screen.refresh();
   }
 
-  private void diplayHello(TextGraphics tg) {
+  private void displayHello(TextGraphics tg) {
     for (int i = 0; i < HELLO_ASCII.length; ++i) {
       tg.putString(0, i, HELLO_ASCII[i]);
     }
+  }
+
+  private String[] splitText(Terminal terminal) throws IOException {
+    int maxWidth = terminal.getTerminalSize().getColumns();
+    String[] words = text.split(" ");
+    List<String> lines = new ArrayList<>();
+
+    StringBuilder currentLine = new StringBuilder();
+
+    for (String word : words) {
+      if (currentLine.length() + word.length() + 1 > maxWidth) {
+        lines.add(currentLine.toString());
+        currentLine = new StringBuilder(word); // Start new line with current word
+      } else {
+        // Add word to the current line
+        if (currentLine.length() > 0) {
+          currentLine.append(" ");
+        }
+        currentLine.append(word);
+      }
+    }
+
+    // Add the last line if there's any remaining text
+    if (currentLine.length() > 0) {
+      lines.add(currentLine.toString());
+    }
+
+    return lines.toArray(new String[0]);
   }
 
   private void reset(Screen screen) {
