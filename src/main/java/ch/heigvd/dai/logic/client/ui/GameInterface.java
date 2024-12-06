@@ -49,16 +49,22 @@ public class GameInterface extends Thread {
       // Set background color and clear
       screen.clear();
 
+      long lastRenderTime = 0;
+      int renderIntervalMs = 50;
+
       // Main loop
       while (running) {
-        KeyStroke keyStroke = screen.pollInput();
-        if (keyStroke != null) {
-          handleKeyInput(keyStroke);
-        }
-        render(terminal, screen);
-        Thread.sleep(100); // Example of a simple delay in the loop
-      }
+        handleKeyInput(screen.pollInput());
 
+        // Render at fixed intervals
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastRenderTime >= renderIntervalMs) {
+          render(terminal, screen);
+          lastRenderTime = currentTime;
+        }
+
+        Thread.sleep(10); // Small sleep to avoid busy-waiting
+      }
       // Reset terminal to initial state
       reset(screen);
 
@@ -68,15 +74,21 @@ public class GameInterface extends Thread {
   }
 
   private void handleKeyInput(KeyStroke keyStroke) {
-    if (keyStroke.getKeyType() == KeyType.Backspace && cursorIndex > 0) {
-      cursorIndex--;
-      userText.deleteCharAt(cursorIndex);
+    if (keyStroke == null) {
       return;
     }
-    Character character = keyStroke.getCharacter();
-    if (character != null && cursorIndex < text.length()) {
-      userText.insert(cursorIndex, character);
-      cursorIndex++;
+
+    if (state.isGameRunning()) {
+      if (keyStroke.getKeyType() == KeyType.Backspace && cursorIndex > 0) {
+        cursorIndex--;
+        userText.deleteCharAt(cursorIndex);
+        return;
+      }
+      Character character = keyStroke.getCharacter();
+      if (character != null && cursorIndex < text.length()) {
+        userText.insert(cursorIndex, character);
+        cursorIndex++;
+      }
     }
   }
 
@@ -109,20 +121,25 @@ public class GameInterface extends Thread {
       }
     } else if (state.isGameRunning()) {
       String[] lines = splitText(terminal);
-      int currentCharIndex = 0;
+      int currCharIndex = 0;
       for (int i = 0; i < lines.length; ++i) {
         for (int j = 0; j < lines[i].length(); ++j) {
-          if (currentCharIndex < cursorIndex) {
-            if (userText.charAt(currentCharIndex) != lines[i].charAt(j)) {
+          if (currCharIndex < cursorIndex) {
+            tg.setBackgroundColor(TextColor.ANSI.DEFAULT);
+            if (userText.charAt(currCharIndex) != lines[i].charAt(j)) {
               tg.setForegroundColor(TextColor.ANSI.RED_BRIGHT);
             } else {
               tg.setForegroundColor(TextColor.ANSI.WHITE_BRIGHT);
             }
+          } else if (currCharIndex == cursorIndex) {
+            tg.setBackgroundColor(TextColor.ANSI.WHITE_BRIGHT);
+            tg.setForegroundColor(TextColor.ANSI.BLACK);
           } else {
+            tg.setBackgroundColor(TextColor.ANSI.DEFAULT);
             tg.setForegroundColor(TextColor.ANSI.BLACK_BRIGHT);
           }
           tg.putString(j, i, String.valueOf(lines[i].charAt(j)));
-          currentCharIndex++;
+          currCharIndex++;
         }
       }
     }
@@ -144,6 +161,7 @@ public class GameInterface extends Thread {
 
     for (String word : words) {
       if (currentLine.length() + word.length() + 1 > maxWidth) {
+        currentLine.append(" ");
         lines.add(currentLine.toString());
         currentLine = new StringBuilder(word); // Start new line with current word
       } else {
