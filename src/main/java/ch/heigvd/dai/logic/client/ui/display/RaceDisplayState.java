@@ -111,9 +111,17 @@ public class RaceDisplayState extends DisplayState {
   }
 
   private void updateProgress() throws IOException {
-    int progress = (int) Math.min(Math.round((double) cursorIndex / text.length() * 100), 99);
-    // Make sure to only be at 100% when all the letters are completed
-    if (cursorIndex == text.length()) {
+    // Count correct characters
+    int correctChars = 0;
+    for (int i = 0; i < cursorIndex; i++) {
+      if (userText.charAt(i) == text.charAt(i)) {
+        correctChars++;
+      }
+    }
+
+    int progress = (int) Math.min(Math.round((double) correctChars / text.length() * 100), 99);
+    // Make sure to only be at 100% when all the letters are completed correctly
+    if (cursorIndex == text.length() && correctChars == text.length()) {
       progress = 100;
     }
 

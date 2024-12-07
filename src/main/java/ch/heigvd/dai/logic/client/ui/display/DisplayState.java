@@ -16,7 +16,8 @@ public abstract class DisplayState {
   public abstract void render(TextGraphics tg) throws IOException;
 
   public void handleInput(KeyStroke keyStroke) throws IOException {
-    if (keyStroke.getKeyType() == KeyType.Character && keyStroke.getCharacter() == 'q') {
+    if ((keyStroke.getKeyType() == KeyType.Character && keyStroke.getCharacter() == 'q')
+        || keyStroke.getKeyType() == KeyType.Escape) {
       renderer.end();
       renderer.getProtocol().closeMulticast();
     }

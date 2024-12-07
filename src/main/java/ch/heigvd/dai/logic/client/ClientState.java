@@ -7,6 +7,7 @@ import ch.heigvd.dai.logic.shared.Player;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ClientState extends BaseState {
   private HashMap<String, Player> players;
@@ -87,5 +88,18 @@ public class ClientState extends BaseState {
     for (UIEventListener listener : uiEventListeners) {
       listener.onUIEvent(event);
     }
+  }
+
+  public String getWinner() {
+    // Winner is the player with the highest score
+    String winner = null;
+    int maxScore = -1;
+    for (Map.Entry<String, Player> entry : players.entrySet()) {
+      if (entry.getValue().getProgress() > maxScore) {
+        maxScore = entry.getValue().getProgress();
+        winner = entry.getKey();
+      }
+    }
+    return winner;
   }
 }

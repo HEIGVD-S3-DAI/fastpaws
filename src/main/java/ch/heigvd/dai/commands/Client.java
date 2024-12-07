@@ -90,10 +90,14 @@ public class Client implements Callable<Integer> {
     boolean success = false;
     do {
       System.out.print("Enter your username: ");
-      String username = scanner.nextLine();
+      String username = scanner.nextLine().strip();
 
       if (username.length() == 0) {
         System.out.println("ERROR: Username cannot be empty");
+        continue;
+      }
+      if (username.contains(" ")) {
+        System.out.println("ERROR: Username cannot contain spaces");
         continue;
       }
 
@@ -134,9 +138,14 @@ public class Client implements Callable<Integer> {
     state.setGameState(BaseState.GameState.WAITING);
 
     // Add existing users to state
-    for (int i = 1; i < parts.length; i++) {
-      if (!parts[i].isEmpty()) {
-        state.addPlayer(parts[i]);
+    for (int i = 1; i + 1 < parts.length; i += 2) {
+      String player = parts[i];
+      boolean isReady = parts[i + 1].equals("1");
+      if (!player.isEmpty()) {
+        state.addPlayer(player);
+        if (isReady) {
+          state.setPlayerReady(player);
+        }
       }
     }
   }
@@ -236,12 +245,6 @@ public class Client implements Callable<Integer> {
   }
 
   private void handleEndGame(String winner) {
-    // TODO: Move this to the TerminalRenderer
-    if (winner.equals(state.getSelfUsername())) {
-      LOGGER.info("End of the game. You're the winner !!!\n");
-    } else {
-      LOGGER.info("End of the game, the winner is : " + winner);
-    }
     state.resetPlayers();
     state.setGameState(BaseState.GameState.FINISHED);
   }

@@ -177,15 +177,20 @@ public class Server implements Callable<Integer> {
     state.setGameState(BaseState.GameState.WAITING);
     state.registerClient(username, new ClientInfo(address, port));
 
-    // Build list of current players
+    // Build list of current players with their ready state
     StringBuilder currentUsers = new StringBuilder();
-    for (String existingUser : state.getConnectedClients().keySet()) {
+    for (Map.Entry<String, ClientInfo> entry : state.getConnectedClients().entrySet()) {
+      String existingUser = entry.getKey();
       if (!existingUser.equals(username)) {
-        currentUsers.append(" ").append(existingUser);
+        currentUsers
+            .append(" ")
+            .append(existingUser)
+            .append(" ")
+            .append(state.isUserReady(existingUser) ? "1" : "0");
       }
     }
 
-    // Send OK with current users list
+    // Send OK with current users list and their ready states
     protocol.sendUnicast(new Message(Command.OK + currentUsers.toString(), address, port));
     // Notify others of new user
     protocol.multicast(Command.NEW_USER + " " + username);
