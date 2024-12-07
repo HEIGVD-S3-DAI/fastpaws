@@ -94,7 +94,11 @@ public class GameInterface extends Thread {
         userText.insert(cursorIndex, character);
         cursorIndex++;
 
-        int progress = (int) Math.min(Math.round((double) cursorIndex / text.length() * 100), 100);
+        int progress = (int) Math.min(Math.round((double) cursorIndex / text.length() * 100), 99);
+        // Make sure to only be at 100% when all the letters are completed
+        if (cursorIndex == text.length()) {
+          progress = 100;
+        }
         try {
           protocol.sendUnicast(
               Client.Command.USER_PROGRESS, state.getSelfUsername() + " " + progress);

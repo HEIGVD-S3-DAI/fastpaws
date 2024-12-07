@@ -150,6 +150,22 @@ public class Server implements Callable<Integer> {
           new Message(Command.USER_JOIN_ERR + " Username already taken", address, port));
       return;
     }
+    if (username.length() > 15) {
+      protocol.sendUnicast(
+          new Message(
+              Command.USER_JOIN_ERR + " Username must be maximux 15 characters long",
+              address,
+              port));
+      return;
+    }
+    if (!username.matches("^(?=.*[A-Z])(?=.*[0-9])[A-Z0-9]+$")) {
+      protocol.sendUnicast(
+          new Message(
+              Command.USER_JOIN_ERR + " Username can only contain letters and digits",
+              address,
+              port));
+      return;
+    }
     if (!state.isGameRunning()) {
       state.setGameState(BaseState.GameState.WAITING);
       state.registerClient(username, new ClientInfo(address, port));

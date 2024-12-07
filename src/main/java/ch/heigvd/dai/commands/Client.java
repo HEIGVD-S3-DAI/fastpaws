@@ -91,6 +91,11 @@ public class Client implements Callable<Integer> {
       System.out.print("Enter your username: ");
       String username = scanner.nextLine();
 
+      if (username.length() == 0) {
+        System.out.println("ERROR: Username cannot be empty");
+        continue;
+      }
+
       Message res = protocol.sendWithResponseUnicast(Command.USER_JOIN, username);
       String[] parts = res.getParts();
 
@@ -111,6 +116,7 @@ public class Client implements Callable<Integer> {
         case USER_JOIN_ERR:
           String err = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));
           LOGGER.info("Could not join server: " + err);
+          System.out.println("ERROR: " + err);
           break;
         case WAIT:
           LOGGER.info("Waiting for the current game to finish...");
