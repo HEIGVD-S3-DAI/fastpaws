@@ -1,16 +1,21 @@
 package ch.heigvd.dai.logic.client;
 
+import ch.heigvd.dai.logic.client.ui.event.UIEvent;
+import ch.heigvd.dai.logic.client.ui.event.UIEventListener;
 import ch.heigvd.dai.logic.shared.BaseState;
 import ch.heigvd.dai.logic.shared.Player;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class ClientState extends BaseState {
-  HashMap<String, Player> players;
-  String selfUsername;
+  private HashMap<String, Player> players;
+  private String selfUsername;
+  private final List<UIEventListener> uiEventListeners = new ArrayList<>();
 
   public ClientState(String selfUsername) {
     this.selfUsername = selfUsername;
-    players = new HashMap<>();
+    this.players = new HashMap<>();
     addPlayer(selfUsername);
   }
 
@@ -53,5 +58,25 @@ public class ClientState extends BaseState {
 
   public void setPlayerProgress(String username, int progress) {
     players.get(username).setProgress(progress);
+  }
+
+  @Override
+  public void setGameState(GameState gameState) {
+    super.setGameState(gameState);
+    fireUIEvent(new UIEvent(UIEvent.EventType.GAME_STATE_CHANGED, gameState));
+  }
+
+  public void addUIEventListener(UIEventListener listener) {
+    uiEventListeners.add(listener);
+  }
+
+  public void removeUIEventListener(UIEventListener listener) {
+    uiEventListeners.remove(listener);
+  }
+
+  public void fireUIEvent(UIEvent event) {
+    for (UIEventListener listener : uiEventListeners) {
+      listener.onUIEvent(event);
+    }
   }
 }

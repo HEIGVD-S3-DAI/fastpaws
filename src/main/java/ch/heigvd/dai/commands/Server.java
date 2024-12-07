@@ -90,44 +90,31 @@ public class Server implements Callable<Integer> {
 
   private void handleMessage(Message message) {
     String[] parts = message.getParts();
-    Client.Command command = null;
+    Client.Command command = parseClientCommand(parts);
 
-    try {
-      command = Client.Command.valueOf(parts[0]);
-    } catch (IllegalArgumentException e) {
+    if (command == null) {
       LOGGER.warning("Received unknown command: " + parts[0]);
       handleUnknownCommand(message.address, message.port);
       return;
     }
 
+    if (!hasValidArgumentCount(command, parts)) {
+      handleIllegalNumberOfArguments(message.address, message.port);
+      return;
+    }
+
     switch (command) {
       case USER_JOIN:
-        if (parts.length != 2) {
-          handleIllegalNumberOfArguments(message.address, message.port);
-        } else {
-          handleUserJoin(parts[1], message.address, message.port);
-        }
+        handleUserJoin(parts[1], message.address, message.port);
         break;
       case USER_READY:
-        if (parts.length != 2) {
-          handleIllegalNumberOfArguments(message.address, message.port);
-        } else {
-          handleUserReady(parts[1], message.address, message.port);
-        }
+        handleUserReady(parts[1], message.address, message.port);
         break;
       case USER_PROGRESS:
-        if (parts.length != 3) {
-          handleIllegalNumberOfArguments(message.address, message.port);
-        } else {
-          handleUserProgress(parts[1], message.address, message.port, Integer.parseInt(parts[2]));
-        }
+        handleUserProgress(parts[1], message.address, message.port, Integer.parseInt(parts[2]));
         break;
       case USER_QUIT:
-        if (parts.length != 2) {
-          handleIllegalNumberOfArguments(message.address, message.port);
-        } else {
-          handleUserQuit(parts[1], message.address, message.port);
-        }
+        handleUserQuit(parts[1], message.address, message.port);
         break;
       default:
         LOGGER.warning("Unhandled command: " + command);
@@ -135,16 +122,28 @@ public class Server implements Callable<Integer> {
     }
   }
 
-  private void handleIllegalNumberOfArguments(InetAddress address, int port) {
-    protocol.sendUnicast(
-        new Message(Command.ERROR + " Illegal number of arguments.", address, port));
+  private Client.Command parseClientCommand(String[] parts) {
+    if (parts.length == 0) return null;
+    try {
+      return Client.Command.valueOf(parts[0]);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
   }
 
-  private void handleUnknownCommand(InetAddress address, int port) {
-    protocol.sendUnicast(new Message(Command.ERROR + " Unknown command.", address, port));
+  private boolean hasValidArgumentCount(Client.Command command, String[] parts) {
+    return switch (command) {
+      case USER_JOIN, USER_READY, USER_QUIT -> parts.length == 2;
+      case USER_PROGRESS -> parts.length == 3;
+    };
+  }
+
+  private void sendErrorResponse(InetAddress address, int port, String message) {
+    protocol.sendUnicast(new Message(Command.ERROR + " " + message, address, port));
   }
 
   private void handleUserJoin(String username, InetAddress address, int port) {
+    // Validate username
     if (state.usernameExists(username)) {
       protocol.sendUnicast(
           new Message(Command.USER_JOIN_ERR + " Username already taken", address, port));
@@ -158,7 +157,7 @@ public class Server implements Callable<Integer> {
               port));
       return;
     }
-    if (!username.matches("^(?=.*[A-Z])(?=.*[0-9])[A-Z0-9]+$")) {
+    if (!username.matches("[A-Za-z0-9]+")) {
       protocol.sendUnicast(
           new Message(
               Command.USER_JOIN_ERR + " Username can only contain letters and digits",
@@ -166,42 +165,70 @@ public class Server implements Callable<Integer> {
               port));
       return;
     }
+
     if (!state.isGameRunning()) {
-      state.setGameState(BaseState.GameState.WAITING);
-      state.registerClient(username, new ClientInfo(address, port));
-      protocol.sendUnicast(new Message(Command.OK.toString(), address, port));
-      protocol.multicast(Command.NEW_USER + " " + username);
+      handleSuccessfulJoin(username, address, port);
     } else {
       protocol.sendUnicast(new Message(Command.WAIT.toString(), address, port));
     }
   }
 
-  private void handleUserReady(String username, InetAddress address, int port) {
-    if (state.usernameExists(username)) {
-      state.setUserReady(username);
-      String currentUsersReady = "";
-      for (String playerUsername : state.getConnectedClients().keySet()) {
-        if (state.isUserReady(playerUsername)) {
-          currentUsersReady += " " + playerUsername;
-        }
-      }
-      protocol.sendUnicast(
-          new Message(Command.CURRENT_USERS_READY + currentUsersReady, address, port));
+  private void handleSuccessfulJoin(String username, InetAddress address, int port) {
+    state.setGameState(BaseState.GameState.WAITING);
+    state.registerClient(username, new ClientInfo(address, port));
 
-      protocol.multicast(Command.USER_READY + " " + username);
-      if (state.getNumPlayers() >= TypingGame.MIN_PLAYERS_FOR_GAME && state.areAllUsersReady()) {
-        LOGGER.info("Starting game in 5 seconds...");
-        try {
-          TimeUnit.SECONDS.sleep(5);
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e); // We want to crash the server, something is going wrong
-        }
-        protocol.multicast(Command.START_GAME + " " + TypingGame.getParagraph());
-        state.setGameState(BaseState.GameState.RUNNING);
-        new Thread(this::multicastProgress).start();
+    // Build list of current players
+    StringBuilder currentUsers = new StringBuilder();
+    for (String existingUser : state.getConnectedClients().keySet()) {
+      if (!existingUser.equals(username)) {
+        currentUsers.append(" ").append(existingUser);
       }
-    } else {
-      protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
+    }
+
+    // Send OK with current users list
+    protocol.sendUnicast(new Message(Command.OK + currentUsers.toString(), address, port));
+    // Notify others of new user
+    protocol.multicast(Command.NEW_USER + " " + username);
+  }
+
+  private void handleUserReady(String username, InetAddress address, int port) {
+    if (!state.usernameExists(username)) {
+      sendErrorResponse(address, port, "User doesn't exist.");
+      return;
+    }
+
+    state.setUserReady(username);
+    sendReadyStatusUpdates(username, address, port);
+
+    if (canStartGame()) {
+      startGame();
+    }
+  }
+
+  private void sendReadyStatusUpdates(String username, InetAddress address, int port) {
+    String currentUsersReady =
+        state.getConnectedClients().keySet().stream()
+            .filter(state::isUserReady)
+            .reduce("", (acc, player) -> acc + " " + player);
+
+    protocol.sendUnicast(
+        new Message(Command.CURRENT_USERS_READY + currentUsersReady, address, port));
+    protocol.multicast(Command.USER_READY + " " + username);
+  }
+
+  private boolean canStartGame() {
+    return state.getNumPlayers() >= TypingGame.MIN_PLAYERS_FOR_GAME && state.areAllUsersReady();
+  }
+
+  private void startGame() {
+    LOGGER.info("Starting game in 5 seconds...");
+    try {
+      TimeUnit.SECONDS.sleep(5);
+      protocol.multicast(Command.START_GAME + " " + TypingGame.getParagraph());
+      state.setGameState(BaseState.GameState.RUNNING);
+      new Thread(this::multicastProgress).start();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -251,5 +278,14 @@ public class Server implements Callable<Integer> {
         state.setGameState(BaseState.GameState.FINISHED);
       }
     }
+  }
+
+  private void handleIllegalNumberOfArguments(InetAddress address, int port) {
+    protocol.sendUnicast(
+        new Message(Command.ERROR + " Illegal number of arguments.", address, port));
+  }
+
+  private void handleUnknownCommand(InetAddress address, int port) {
+    protocol.sendUnicast(new Message(Command.ERROR + " Unknown command.", address, port));
   }
 }

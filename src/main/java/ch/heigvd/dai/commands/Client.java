@@ -2,7 +2,8 @@ package ch.heigvd.dai.commands;
 
 import ch.heigvd.dai.logic.client.ClientProtocol;
 import ch.heigvd.dai.logic.client.ClientState;
-import ch.heigvd.dai.logic.client.ui.GameInterface;
+import ch.heigvd.dai.logic.client.ui.TerminalRenderer;
+import ch.heigvd.dai.logic.client.ui.event.UIEvent;
 import ch.heigvd.dai.logic.shared.BaseState;
 import ch.heigvd.dai.logic.shared.Message;
 import java.io.IOException;
@@ -58,7 +59,7 @@ public class Client implements Callable<Integer> {
   private final Scanner scanner = new Scanner(System.in);
   private ClientProtocol protocol;
   private ClientState state;
-  private GameInterface game;
+  private TerminalRenderer renderer;
 
   @Override
   public Integer call() {
@@ -73,11 +74,11 @@ public class Client implements Callable<Integer> {
       join();
       // Signal the server when quitting
       Runtime.getRuntime().addShutdownHook(new Thread(() -> quit()));
-      setReady();
-      game = new GameInterface(state, protocol);
-      game.start();
+      renderer = new TerminalRenderer(state, protocol);
+      renderer.start();
       protocol.listenToMulticast(this::handleMulticastMessage);
-      game.end();
+      renderer.end();
+      renderer.join();
     } catch (Exception e) {
       LOGGER.severe("Error in client: " + e.getMessage());
       return 1;
@@ -97,26 +98,15 @@ public class Client implements Callable<Integer> {
       }
 
       Message res = protocol.sendWithResponseUnicast(Command.USER_JOIN, username);
-      String[] parts = res.getParts();
-
-      Server.Command command = null;
-      try {
-        command = Server.Command.valueOf(parts[0]);
-      } catch (Exception e) {
-        // Do nothing
-      }
+      Server.Command command = parseServerCommand(res.getParts());
 
       switch (command) {
         case OK:
-          LOGGER.info("Successfully joined the server!");
-          state = new ClientState(username);
-          state.setGameState(BaseState.GameState.WAITING);
+          handleSuccessfulJoin(username, res.getParts());
           success = true;
           break;
         case USER_JOIN_ERR:
-          String err = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));
-          LOGGER.info("Could not join server: " + err);
-          System.out.println("ERROR: " + err);
+          handleError("Could not join server", res.getParts());
           break;
         case WAIT:
           LOGGER.info("Waiting for the current game to finish...");
@@ -129,37 +119,40 @@ public class Client implements Callable<Integer> {
     } while (!success);
   }
 
+  private Server.Command parseServerCommand(String[] parts) {
+    if (parts.length == 0) return null;
+    try {
+      return Server.Command.valueOf(parts[0]);
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  private void handleSuccessfulJoin(String username, String[] parts) {
+    LOGGER.info("Successfully joined the server!");
+    state = new ClientState(username);
+    state.setGameState(BaseState.GameState.WAITING);
+
+    // Add existing users to state
+    for (int i = 1; i < parts.length; i++) {
+      if (!parts[i].isEmpty()) {
+        state.addPlayer(parts[i]);
+      }
+    }
+  }
+
+  private void handleError(String context, String[] parts) {
+    String err = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));
+    LOGGER.info(context + ": " + err);
+    System.out.println("ERROR: " + err);
+  }
+
   private void quit() {
     try {
       protocol.sendUnicast(Command.USER_QUIT, state.getSelfUsername());
     } catch (IOException e) {
+      // Note: We ignore the exception as this is called through an exit signal
       LOGGER.severe("Failed to disconnect from server");
-      // TODO: For now we ignore, but how should we handle this?
-    }
-  }
-
-  private void setReady() throws Exception {
-    System.out.println("Press ENTER when your are ready...");
-    scanner.nextLine(); // Wait enter key
-    state.setPlayerReady(state.getSelfUsername());
-    Message res = protocol.sendWithResponseUnicast(Command.USER_READY, state.getSelfUsername());
-
-    LOGGER.info("Received message: " + res.str);
-    String[] parts = res.getParts();
-    Server.Command command = null;
-    try {
-      command = Server.Command.valueOf(parts[0]);
-    } catch (Exception e) {
-      // Do nothing
-    }
-    if (command == Server.Command.CURRENT_USERS_READY) {
-      for (int i = 1; i < parts.length; i++) {
-        if (state.playerExists(parts[i])) continue;
-        state.addPlayer(parts[i]);
-        state.setPlayerReady(parts[i]);
-      }
-    } else {
-      LOGGER.warning("Unknown message.");
     }
   }
 
@@ -182,16 +175,17 @@ public class Client implements Callable<Integer> {
     String[] parts = message.split("\\s+");
     LOGGER.info("Received message: " + message);
 
-    Server.Command command = null;
-    try {
-      command = Server.Command.valueOf(parts[0]);
-    } catch (Exception e) {
+    Server.Command command = parseServerCommand(parts);
+    if (command == null) {
       LOGGER.warning("Received unknown command: " + message);
+      return;
     }
 
     switch (command) {
       case NEW_USER:
-        if (!parts[1].equals(state.getSelfUsername())) state.addPlayer(parts[1]);
+        if (!parts[1].equals(state.getSelfUsername())) {
+          state.addPlayer(parts[1]);
+        }
         break;
       case USER_READY:
         handleUserReady(parts[1]);
@@ -211,7 +205,6 @@ public class Client implements Callable<Integer> {
       case ERROR:
         LOGGER.warning("Error : " + message.split("\\s+", 2)[1]);
         break;
-      case null:
       default:
         LOGGER.warning("Unhandled multicast message: " + message);
     }
@@ -229,13 +222,7 @@ public class Client implements Callable<Integer> {
 
   private void handleStartGame(String text) {
     state.setGameState(BaseState.GameState.RUNNING);
-    game.setText(text);
-    // try {
-    // protocol.sendUnicast(Command.USER_PROGRESS, state.getSelfUsername() + " " +
-    // "100");
-    // } catch (IOException e) {
-    // LOGGER.severe("Failed to update progress");
-    // }
+    state.fireUIEvent(new UIEvent(UIEvent.EventType.RACE_TEXT_RECEIVED, text));
   }
 
   private void handleUpdateUsersProgress(String[] message) {
@@ -249,6 +236,7 @@ public class Client implements Callable<Integer> {
   }
 
   private void handleEndGame(String winner) {
+    // TODO: Move this to the TerminalRenderer
     if (winner.equals(state.getSelfUsername())) {
       LOGGER.info("End of the game. You're the winner !!!\n");
     } else {
@@ -256,10 +244,5 @@ public class Client implements Callable<Integer> {
     }
     state.resetPlayers();
     state.setGameState(BaseState.GameState.FINISHED);
-    try {
-      setReady();
-    } catch (Exception e) {
-      throw new RuntimeException(e); // Crash the client
-    }
   }
 }
