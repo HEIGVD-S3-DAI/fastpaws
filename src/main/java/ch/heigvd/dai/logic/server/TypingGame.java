@@ -4,6 +4,7 @@ import java.util.Random;
 
 public class TypingGame {
   public static final int MIN_PLAYERS_FOR_GAME = 2;
+  public static final int GAME_START_DELAY = 5; // In seconds
   private static String[] PARAGRAPHS = {
     "Cats are one of the most popular pets in the world, known for their independent nature and playful personalities. They are often considered low-maintenance companions, as they are litter-trained and groom themselves. Despite their independence, cats form strong bonds with their owners and enjoy affection in their own way.",
     "Cats have an incredible ability to adapt to various environments, whether they live indoors or outdoors. They are highly skilled hunters, using their sharp claws and keen eyesight to catch prey. Even domestic cats often display hunting behavior, stalking toys or small objects around the house.",

@@ -221,9 +221,9 @@ public class Server implements Callable<Integer> {
   }
 
   private void startGame() {
-    LOGGER.info("Starting game in 5 seconds...");
+    LOGGER.info("Starting game in " + TypingGame.GAME_START_DELAY + " seconds...");
     try {
-      TimeUnit.SECONDS.sleep(5);
+      TimeUnit.SECONDS.sleep(TypingGame.GAME_START_DELAY);
       protocol.multicast(Command.START_GAME + " " + TypingGame.getParagraph());
       state.setGameState(BaseState.GameState.RUNNING);
       new Thread(this::multicastProgress).start();

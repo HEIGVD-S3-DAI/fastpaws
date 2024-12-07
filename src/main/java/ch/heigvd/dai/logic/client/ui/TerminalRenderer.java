@@ -112,9 +112,10 @@ public class TerminalRenderer extends Thread implements UIEventListener {
   private void cleanup() {
     try {
       if (screen != null) {
-        // TODO: Fix exception exiting private mode
-        screen.stopScreen();
+        screen.close();
       }
+    } catch (IllegalStateException e) {
+      // We ignore for now (exception exiting private mode)
     } catch (IOException e) {
       LOGGER.severe("Error cleaning up terminal: " + e.getMessage());
     }

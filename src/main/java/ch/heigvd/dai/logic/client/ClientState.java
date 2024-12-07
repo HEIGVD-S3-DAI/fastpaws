@@ -56,6 +56,15 @@ public class ClientState extends BaseState {
     players.get(username).setReady(true);
   }
 
+  public boolean allPlayersReady() {
+    for (Player player : players.values()) {
+      if (!player.isReady()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public void setPlayerProgress(String username, int progress) {
     players.get(username).setProgress(progress);
   }

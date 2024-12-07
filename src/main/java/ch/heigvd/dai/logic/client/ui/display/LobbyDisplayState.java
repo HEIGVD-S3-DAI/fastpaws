@@ -3,8 +3,11 @@ package ch.heigvd.dai.logic.client.ui.display;
 import ch.heigvd.dai.commands.Client;
 import ch.heigvd.dai.commands.Server;
 import ch.heigvd.dai.logic.client.ui.TerminalRenderer;
+import ch.heigvd.dai.logic.server.TypingGame;
 import ch.heigvd.dai.logic.shared.Message;
 import ch.heigvd.dai.logic.shared.Player;
+import com.googlecode.lanterna.SGR;
+import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
@@ -20,6 +23,8 @@ public class LobbyDisplayState extends DisplayState {
     "/_/  \\_,_/___/\\__/_/   \\_,_/|__,__/___/",
   };
 
+  private long gameStartTime = -1;
+
   public LobbyDisplayState(TerminalRenderer renderer) {
     super(renderer);
   }
@@ -30,18 +35,29 @@ public class LobbyDisplayState extends DisplayState {
   }
 
   private void displayHello(TextGraphics tg) {
+    tg.setForegroundColor(TextColor.ANSI.MAGENTA);
+    tg.enableModifiers(SGR.BOLD);
     for (int i = 0; i < HELLO_ASCII.length; ++i) {
       tg.putString(0, i, HELLO_ASCII[i]);
     }
+    tg.disableModifiers(SGR.BOLD);
+    tg.setForegroundColor(TextColor.ANSI.DEFAULT);
   }
 
   private void displayPlayerList(TextGraphics tg) {
     String selfUsername = renderer.getClientState().getSelfUsername();
     Player self = renderer.getClientState().getPlayers().get(selfUsername);
+    int numConnected = renderer.getClientState().getPlayers().size();
+    boolean allPlayersReady = renderer.getClientState().allPlayersReady();
 
-    tg.putString(0, 6, "Players:");
+    tg.enableModifiers(SGR.BOLD);
+    tg.enableModifiers(SGR.UNDERLINE);
     tg.putString(
-        0, 7, "  * " + selfUsername + " (you)" + (self.isReady() ? " [ready]" : " [not ready]"));
+        0, 6, "Connected Players (" + numConnected + "/" + TypingGame.MIN_PLAYERS_FOR_GAME + "):");
+    tg.disableModifiers(SGR.BOLD);
+    tg.disableModifiers(SGR.UNDERLINE);
+    tg.putString(
+        0, 7, "  - " + selfUsername + " (you)" + (self.isReady() ? " [ready]" : " [not ready]"));
 
     int offset = 8;
     for (Map.Entry<String, Player> entry : renderer.getClientState().getPlayers().entrySet()) {
@@ -50,13 +66,23 @@ public class LobbyDisplayState extends DisplayState {
         continue;
       }
       Player player = entry.getValue();
-      tg.putString(0, offset, "  * " + username + (player.isReady() ? " [ready]" : " [not ready]"));
+      tg.putString(0, offset, "  - " + username + (player.isReady() ? " [ready]" : " [not ready]"));
       offset++;
     }
 
     if (!self.isReady()) {
       offset++;
-      tg.putString(0, offset, "Press ENTER to be ready");
+      tg.putString(0, offset, "Press ENTER when ready");
+    } else if (allPlayersReady && numConnected >= TypingGame.MIN_PLAYERS_FOR_GAME) {
+      offset++;
+      if (gameStartTime == -1) {
+        gameStartTime = System.currentTimeMillis() + TypingGame.GAME_START_DELAY * 1000;
+      }
+
+      long remainingTime = Math.max(0, (gameStartTime - System.currentTimeMillis()) / 1000);
+      tg.putString(0, offset, "Game starting in " + remainingTime + " seconds...");
+    } else {
+      gameStartTime = -1;
     }
   }
 
