@@ -15,15 +15,7 @@
 
 The "Fastpaws" protocol is a communication protocol that allow multiple clients to compete in a typing race.
 ## Transport protocol
-```note
-TODO : Remove these after validation that every question is answered :
-    What protocol(s) is/are involved? On which port(s)?
-    How are messages/actions encoded?
-    How are messages/actions delimited?
-    How are messages/actions treated (text or binary)?
-    Who initiates/closes the communication?
-    What happens on an unknown message/action/exception?
-```
+
 The "Fastpaws" protocol is a text transport protocol. It uses UDP transport protocol as we do not require reliability.
 
 Every message is encoded in UTF-8 and delimited by a space character. They are treated as text messages.
@@ -188,9 +180,9 @@ When a client reached 100%, the server send a multicast request to inform the ga
 **Request:**
 
 ```
-END_GAME <winner_username>
+END_GAME <winnerUsername>
 ```
-- `winner_username` : username of the winning client
+- `winnerUsername` : username of the winning client
 
 The client responsible for displaying the game over screen and the winner username.
 
@@ -234,61 +226,93 @@ ERROR <errorMessage ...>
 
 ### General Protocol
 
-![Sequence Diagram](./diagram.svg)
+![Sequence Diagram](./example1.svg)
 
-### Client Error when Joining the Server
+### Error when Joining the Server
 
-![Sequence Diagram with Error](./error-diagram.svg)
+![Sequence Diagram with Error](./exampleerror1.svg)
 
+### Generic Error when providing illegal request
 
+![Sequence Diagram with Error](./exampleerror2.svg)
+
+## Annexes
+### UML Source
 ```staruml
 @startuml
 actor Client1
 actor Client2
 actor Server
 
-== Joining the Server ==
+== Joining the Server (Notify server) ==
 
-Client1 -> Server: USER_JOIN <name>
-Server -> Client1: OK
-Server -> Client2: USER_NEW <name>
+Client1 -> Server: USER_JOIN <username>
+Server -> Client1: OK <username1> <status1> <username2> <status2> ...
+Client1<-->Server: client join multicast group.
+== Joining the Server (Notify clients) ==
 
-== Preparing the Game ==
+Server -> Client1: NEW_USER <username
+Server -> Client2: NEW_USER <username>
 
-Client1 -> Server: USER_READY <name>
-Server -> Client2: USER_READY <name>
+== Preparing the Game (Notify server) ==
+
+Client1 -> Server: USER_READY <username>
+
+== Preparing the Game (Notify clients) ==
+Server -> Client1: USER_READY <username>
+Server -> Client2: USER_READY <username>
 
 == Starting the Game ==
 
-Server -> Client1: START_GAME <text> ...
-Server -> Client2: START_GAME <text> ...
+Server -> Client1: START_GAME <text>
+Server -> Client2: START_GAME <text>
 
-== Updating Progress ==
+== Client Updating Progress ==
 
-Client1 -> Server: USER_PROGRESS <name> <progress>
-Server -> Client1: USERS_PROGRESS <name> <progress> <name> <progress> ...
-Server -> Client2: USERS_PROGRESS <name> <progress> <name> <progress> ...
+Client1 -> Server: USER_PROGRESS <username1> <progress1>
+
+
+== Server Updating Progress (every 2s)==
+
+Server -> Client1: ALL_USERS_PROGRESS <username1> <progress1> <username2> <progress2> ...
+Server -> Client2: ALL_USERS_PROGRESS <username1> <progress1> <username2> <progress2> ...
 
 == Ending the Game ==
 
-Server -> Client1: END_GAME <winner_name>
-Server -> Client2: END_GAME <winner_name>
+Server -> Client1: END_GAME <winnerUsername>
+Server -> Client2: END_GAME <winnerUsername>
 
 == Quitting the Server ==
 
-Client1 -> Server: USER_QUIT <name>
-Server -> Client2: USER_QUIT <name>
+Client1 -> Server: USER_QUIT <username1>
+Client1<-->Server: client leave multicast group.
+Server -> Client2: DEL_USER <username1>
+
 @enduml
 ```
 
-```
+```staruml
 @startuml
 actor Client1
 actor Server
 
 == Joining the Server (Error) ==
 
-Client1 -> Server: USER_JOIN <name>
-Server -> Client1: USER_JOIN_ERR <msg>
+Client1 -> Server: USER_JOIN <username>
+Server -> Client1: USER_JOIN_ERR <message>
+
+@enduml
+```
+
+```staruml
+@startuml
+actor Client1
+actor Server
+
+== Generic Server Error ==
+
+Client1 -> Server: INVALID_REQUEST <invalidArgument>
+Server -> Client1: ERROR <errorMessage>
+
 @enduml
 ```
