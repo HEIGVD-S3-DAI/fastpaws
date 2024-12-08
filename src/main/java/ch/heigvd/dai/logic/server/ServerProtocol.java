@@ -7,9 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
-/**
- * Server protocol for sending and receiving messages to the clients.
- */
+/** Server protocol for sending and receiving messages to the clients. */
 public class ServerProtocol {
 
   private static final Logger LOGGER = Logger.getLogger(ServerProtocol.class.getName());
@@ -22,6 +20,7 @@ public class ServerProtocol {
 
   /**
    * Create a new server protocol.
+   *
    * @param port the port to use for the unicast socket
    * @param multicastAddress the multicast address to use
    * @param multicastPort the multicast port to use
@@ -41,6 +40,7 @@ public class ServerProtocol {
 
   /**
    * Listen to unicast messages. This function will block until the socket is closed.
+   *
    * @param messageHandler the handler to call for each message
    * @throws IOException if an error occurs while listening
    */
@@ -57,6 +57,7 @@ public class ServerProtocol {
 
   /**
    * Receive a unicast message.
+   *
    * @return the message received
    * @throws IOException if an error occurs while receiving the message
    */
@@ -74,6 +75,7 @@ public class ServerProtocol {
 
   /**
    * Send a unicast message to a client.
+   *
    * @param message the message to send
    * @throws IOException if an error occurs while sending the message
    */
@@ -92,6 +94,7 @@ public class ServerProtocol {
 
   /**
    * Send a multicast message to all clients.
+   *
    * @param message the message to send
    * @throws IOException if an error occurs while sending the message
    */
@@ -107,9 +110,7 @@ public class ServerProtocol {
     }
   }
 
-  /**
-   * Close the sockets.
-   */
+  /** Close the sockets. */
   public void closeSockets() {
     if (unicastSocket != null && !unicastSocket.isClosed()) unicastSocket.close();
     if (multicastSocket != null && !multicastSocket.isClosed()) multicastSocket.close();

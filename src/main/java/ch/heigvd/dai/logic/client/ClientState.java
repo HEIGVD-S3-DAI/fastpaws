@@ -6,9 +6,7 @@ import ch.heigvd.dai.logic.shared.BaseState;
 import ch.heigvd.dai.logic.shared.Player;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Client state for the client logic.
- */
+/** Client state for the client logic. */
 public class ClientState extends BaseState {
   private final ConcurrentHashMap<String, Player> players;
   private final String selfUsername;

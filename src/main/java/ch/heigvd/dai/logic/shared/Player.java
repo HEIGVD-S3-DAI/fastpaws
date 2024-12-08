@@ -1,8 +1,6 @@
 package ch.heigvd.dai.logic.shared;
 
-/**
- * Player class for the client and server logic.
- */
+/** Player class for the client and server logic. */
 public class Player {
   private volatile boolean isReady = false;
   private volatile int progress = 0;

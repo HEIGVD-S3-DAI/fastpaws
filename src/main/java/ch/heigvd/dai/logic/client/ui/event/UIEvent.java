@@ -1,8 +1,6 @@
 package ch.heigvd.dai.logic.client.ui.event;
 
-/**
- * Event class for UI events from the client logic to the client UI.
- */
+/** Event class for UI events from the client logic to the client UI. */
 public class UIEvent {
   private final EventType type;
   private final Object data;

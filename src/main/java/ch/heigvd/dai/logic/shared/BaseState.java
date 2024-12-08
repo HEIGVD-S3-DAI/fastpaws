@@ -1,8 +1,6 @@
 package ch.heigvd.dai.logic.shared;
 
-/**
- * Base state for the client and server logic.
- */
+/** Base state for the client and server logic. */
 public abstract class BaseState {
   private GameState gameState = GameState.WAITING;
 

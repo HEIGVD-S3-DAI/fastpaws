@@ -132,6 +132,7 @@ public class RaceDisplayState extends DisplayState {
 
   /**
    * Split the text into lines of a maximum width.
+   *
    * @param terminal the terminal to use for splitting
    * @return the lines of the text
    * @throws IOException if an error occurs while splitting

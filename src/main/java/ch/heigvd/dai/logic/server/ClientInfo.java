@@ -3,9 +3,7 @@ package ch.heigvd.dai.logic.server;
 import ch.heigvd.dai.logic.shared.Player;
 import java.net.InetAddress;
 
-/**
- * Client information for the server logic.
- */
+/** Client information for the server logic. */
 public class ClientInfo {
   public final InetAddress address;
   public final int port;

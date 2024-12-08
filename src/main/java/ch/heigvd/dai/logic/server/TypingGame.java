@@ -2,10 +2,7 @@ package ch.heigvd.dai.logic.server;
 
 import java.util.Random;
 
-/**
- * Class for the typing game.
- * This class contains the "rules" for the typing game.
- */
+/** Class for the typing game. This class contains the "rules" for the typing game. */
 public class TypingGame {
   public static final int MIN_PLAYERS_FOR_GAME = 2;
   public static final int GAME_START_DELAY = 5; // In seconds
