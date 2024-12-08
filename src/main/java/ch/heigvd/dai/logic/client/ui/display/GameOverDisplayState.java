@@ -48,7 +48,7 @@ public class GameOverDisplayState extends DisplayState {
   @Override
   public void handleInput(KeyStroke keyStroke) throws IOException {
     super.handleInput(keyStroke);
-
+    // If the user presses enter, reset the game state
     if (keyStroke.getKeyType() == KeyType.Enter) {
       ui.getClientState().setGameState(BaseState.GameState.WAITING);
     }

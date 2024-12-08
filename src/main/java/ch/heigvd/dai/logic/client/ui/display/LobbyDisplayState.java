@@ -107,6 +107,7 @@ public class LobbyDisplayState extends DisplayState {
   public void handleInput(KeyStroke keyStroke) throws IOException {
     super.handleInput(keyStroke);
 
+    // If the user presses enter, set the player ready
     if (keyStroke.getKeyType() == KeyType.Enter
         && !ui.getClientState().getSelf().isReady()
         && !ui.getClientState().isPlayerInGame()) {
@@ -116,12 +117,7 @@ public class LobbyDisplayState extends DisplayState {
           ui.getNetwork().sendWithResponseUnicast(Client.Command.USER_READY, selfUsername);
 
       String[] parts = res.getParts();
-      Server.Command command = null;
-      try {
-        command = Server.Command.valueOf(parts[0]);
-      } catch (Exception e) {
-        // Do nothing
-      }
+      Server.Command command = Server.Command.fromString(parts[0]);
       if (command == Server.Command.CURRENT_USERS_READY) {
         for (int i = 1; i < parts.length; i++) {
           if (ui.getClientState().playerExists(parts[i])) continue;

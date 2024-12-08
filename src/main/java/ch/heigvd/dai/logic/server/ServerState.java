@@ -3,6 +3,9 @@ package ch.heigvd.dai.logic.server;
 import ch.heigvd.dai.logic.shared.BaseState;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Sever state for the server logic.
+ */
 public class ServerState extends BaseState {
   private final ConcurrentHashMap<String, ClientInfo> connectedClients = new ConcurrentHashMap<>();
 

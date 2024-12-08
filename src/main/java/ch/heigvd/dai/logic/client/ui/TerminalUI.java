@@ -18,6 +18,9 @@ import com.googlecode.lanterna.terminal.Terminal;
 import java.io.IOException;
 import java.util.logging.Logger;
 
+/**
+ * The client UI.
+ */
 public class TerminalUI extends Thread implements UIEventListener {
   private static final Logger LOGGER = Logger.getLogger(TerminalUI.class.getName());
   private static final int REFRESH_INTERVAL_MS = 50;
@@ -36,6 +39,10 @@ public class TerminalUI extends Thread implements UIEventListener {
     state.setUIEventListener(this);
   }
 
+  /**
+   * Update the UI state based on the given UI event.
+   * @param event the UI event to handle
+   */
   @Override
   public void onUIEvent(UIEvent event) {
     switch (event.getType()) {
@@ -63,6 +70,11 @@ public class TerminalUI extends Thread implements UIEventListener {
     }
   }
 
+  /**
+   * Main thread loop
+   * @throws IOException if an error occurs while initializing or running the game
+   * @throws InterruptedException if the thread is interrupted
+   */
   public void run() {
     try {
       initializeTerminal();
@@ -91,6 +103,7 @@ public class TerminalUI extends Thread implements UIEventListener {
         currentDisplay.handleInput(keyStroke);
       }
 
+      // Render the current display state
       long currentTime = System.currentTimeMillis();
       if (currentTime - lastRenderTime >= REFRESH_INTERVAL_MS) {
         TextGraphics tg = screen.newTextGraphics();

@@ -92,12 +92,15 @@ public class RaceDisplayState extends DisplayState {
   @Override
   public void handleInput(KeyStroke keyStroke) throws IOException {
     super.handleInput(keyStroke);
+
+    // If the user presses backspace, delete the character before the cursor
     if (keyStroke.getKeyType() == KeyType.Backspace && cursorIndex > 0) {
       cursorIndex--;
       userText.deleteCharAt(cursorIndex);
       return;
     }
 
+    // If the user presses a character, insert it at the cursor and update the progress
     Character character = keyStroke.getCharacter();
     if (character != null && cursorIndex < text.length()) {
       userText.insert(cursorIndex, character);
@@ -127,6 +130,12 @@ public class RaceDisplayState extends DisplayState {
             Client.Command.USER_PROGRESS, ui.getClientState().getSelfUsername() + " " + progress);
   }
 
+  /**
+   * Split the text into lines of a maximum width.
+   * @param terminal the terminal to use for splitting
+   * @return the lines of the text
+   * @throws IOException if an error occurs while splitting
+   */
   private String[] splitText(Terminal terminal) throws IOException {
     int maxWidth = terminal.getTerminalSize().getColumns();
     String[] words = text.split(" ");

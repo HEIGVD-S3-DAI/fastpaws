@@ -7,6 +7,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
+/**
+ * Server protocol for sending and receiving messages to the clients.
+ */
 public class ServerProtocol {
 
   private static final Logger LOGGER = Logger.getLogger(ServerProtocol.class.getName());
@@ -17,6 +20,13 @@ public class ServerProtocol {
   private final MulticastSocket multicastSocket;
   private final InetAddress multicastGroup;
 
+  /**
+   * Create a new server protocol.
+   * @param port the port to use for the unicast socket
+   * @param multicastAddress the multicast address to use
+   * @param multicastPort the multicast port to use
+   * @throws IOException if an error occurs while creating the sockets
+   */
   public ServerProtocol(int port, String multicastAddress, int multicastPort) throws IOException {
     try {
       unicastSocket = new DatagramSocket(port);
@@ -29,6 +39,11 @@ public class ServerProtocol {
     }
   }
 
+  /**
+   * Listen to unicast messages. This function will block until the socket is closed.
+   * @param messageHandler the handler to call for each message
+   * @throws IOException if an error occurs while listening
+   */
   public void listenForUnicastMessages(Consumer<Message> messageHandler) {
     while (unicastSocket.isBound() && !unicastSocket.isClosed()) {
       try {
@@ -40,6 +55,11 @@ public class ServerProtocol {
     }
   }
 
+  /**
+   * Receive a unicast message.
+   * @return the message received
+   * @throws IOException if an error occurs while receiving the message
+   */
   private Message receiveUnicast() throws IOException {
     byte[] buffer = new byte[BUFFER_SIZE];
     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
@@ -52,6 +72,11 @@ public class ServerProtocol {
     return new Message(message, packet.getAddress(), packet.getPort());
   }
 
+  /**
+   * Send a unicast message to a client.
+   * @param message the message to send
+   * @throws IOException if an error occurs while sending the message
+   */
   public void sendUnicast(Message message) {
     try (DatagramSocket socket = new DatagramSocket()) {
       byte[] buffer = message.str.getBytes(StandardCharsets.UTF_8);
@@ -65,6 +90,11 @@ public class ServerProtocol {
     }
   }
 
+  /**
+   * Send a multicast message to all clients.
+   * @param message the message to send
+   * @throws IOException if an error occurs while sending the message
+   */
   public void multicast(String message) {
     try {
       byte[] buffer = message.getBytes(StandardCharsets.UTF_8);
@@ -77,6 +107,9 @@ public class ServerProtocol {
     }
   }
 
+  /**
+   * Close the sockets.
+   */
   public void closeSockets() {
     if (unicastSocket != null && !unicastSocket.isClosed()) unicastSocket.close();
     if (multicastSocket != null && !multicastSocket.isClosed()) multicastSocket.close();

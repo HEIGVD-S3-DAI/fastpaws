@@ -2,6 +2,10 @@ package ch.heigvd.dai.logic.shared;
 
 import java.net.InetAddress;
 
+/**
+ * Message class that wraps a string and its sender.
+ * This class is used for sending and receiving messages between the client and server.
+ */
 public class Message {
   public final String str;
   public final InetAddress address;
