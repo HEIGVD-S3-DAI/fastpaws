@@ -1,22 +1,35 @@
 # Application Protocol
 
-- [Commands](#commands)
-  - [Join the Sever](#join-the-sever)
-  - [Prepare the Game](#prepare-the-game)
-  - [Start the Game](#start-the-game)
-  - [Update the Progress](#update-the-progress)
-  - [End the Game](#end-the-game)
-  - [Quit the Sever](#quit-the-sever)
-  - [Sequence Diagram](#sequence-diagram)
-  - [General Protocol](#general-protocol)
-  - [Client Error when Joining the Server](#client-error-when-joining-the-server)
+- [Overview](#overview)
+- [Transport protocol](#transport-protocol)
+  - [Join the server](#join-the-server)
+  - [Prepare the game](#prepare-the-game)
+  - [Start the game](#start-the-game)
+  - [Update the progress](#update-the-progress)
+  - [Quit the server](#quit-the-server)
+  - [Error](#error)
+- [Messages](#messages)
+  - [Join the server](#join-the-server-1)
+  - [Prepare the game](#prepare-the-game-1)
+  - [Start the game](#start-the-game-1)
+  - [Update the progress](#update-the-progress-1)
+  - [End the game](#end-the-game)
+  - [Quit the server](#quit-the-server-1)
+  - [General error message](#general-error-message)
+- [Examples](#examples)
+  - [General protocol](#general-protocol)
+  - [Error when joining the server](#error-when-joining-the-server)
+  - [Generic error when providing illegal request](#generic-error-when-providing-illegal-request)
+- [Annexes](#annexes)
+  - [UML sources](#uml-sources)
 
 ## Overview
 
-The "Fastpaws" protocol is a communication protocol that allow multiple clients to compete in a typing race.
+The "FastPaws" protocol is a communication protocol that allow multiple clients to compete in a typing race.
+
 ## Transport protocol
 
-The "Fastpaws" protocol is a text transport protocol. It uses UDP transport protocol as we do not require reliability.
+The "FastPaws" protocol is a text transport protocol. It uses UDP transport protocol as we do not require reliability.
 
 Every message is encoded in UTF-8 and delimited by a space character. They are treated as text messages.
 
@@ -224,20 +237,22 @@ ERROR <errorMessage ...>
 
 ## Examples
 
-### General Protocol
+### General protocol
 
 ![Sequence Diagram](./example1.svg)
 
-### Error when Joining the Server
+### Error when joining the server
 
 ![Sequence Diagram with Error](./exampleerror1.svg)
 
-### Generic Error when providing illegal request
+### Generic error when providing illegal request
 
 ![Sequence Diagram with Error](./exampleerror2.svg)
 
 ## Annexes
-### UML Source
+
+### UML sources
+
 ```staruml
 @startuml
 actor Client1
