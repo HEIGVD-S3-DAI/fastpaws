@@ -3,6 +3,7 @@
 - [About](#about)
   - [Purpose](#purpose)
 - [How to play](#how-to-play)
+  - [Game logic](#game-logic)
 - [Usage](#usage)
   - [Server](#server)
   - [Client](#client)
@@ -14,7 +15,7 @@
 
 ## About
 
-FastPaws is a typing game that is played using a client-server architecture. It works with the UDP protocol. To learn more about the networking, refer to the [Protocol Documentation](docs/protocol.md).
+FastPaws is a terminal based typing game that is played using a client-server architecture. It works with the UDP protocol. To learn more about the networking, refer to the [Protocol Documentation](docs/protocol.md).
 
 ### Purpose
 
@@ -28,6 +29,13 @@ You win by correctly typing the paragraph.
 You cannot win the game if you have typos in your paragraph. Make sure to correct all your mistakes.
 
 Good luck!
+
+### Game logic
+
+The game logic is as follows:
+
+- The server starts the game if there are at least **two** clients connected and ready.
+- If a client connects during the game, the client will have to wait for the end of the current game to play.
 
 ## Usage
 
@@ -113,6 +121,7 @@ The following will demonstrate how to run the application locally.
 3. The client will prompt you to enter your username. Enter your username and press enter.
 4. Repeat step 2 and 3 to register a second client.
 5. Press enter on each client to start the game.
+6. Play!
 
 ## Development
 
@@ -134,7 +143,7 @@ Make sure you make java jdk>=21 installed on your machine and follow the steps b
 ./mvnw package
 ```
 
-This will create a jar file in the `target` folder.
+This will create a jar file in the `target/` folder.
 
 Optionally, create an alias to the jar application with the command below:
 
