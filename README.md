@@ -57,10 +57,10 @@ To run the aplication, you can use the following commands:
 
 ```bash
 # Pull the image
-// TODO
+docker pull ghcr.io/heigvd-s3-dai/fastpaws:latest
 
 # Run the application
-docker run --network host --rm -it fastpaws:latest -h
+docker run --network host --rm -it ghcr.io/heigvd-s3-dai/fastpaws:latest -h
 ```
 
 ```bash
@@ -76,7 +76,7 @@ Commands:
 ### Server
 
 ```bash
-docker run --network host --rm -it fastpaws:latest server -h
+docker run --network host --rm -it ghcr.io/heigvd-s3-dai/fastpaws:latest server -h
 ```
 
 ```bash
@@ -97,7 +97,7 @@ Start the server to connect to the server
 ### Client
 
 ```bash
-docker run --network host --rm -it fastpaws:latest client -h
+docker run --network host --rm -it ghcr.io/heigvd-s3-dai/fastpaws:latest client -h
 ```
 ```bash
 Usage: app.jar client [-hV] [-H=<serverHost>] -I=<networkInterface>
@@ -124,11 +124,11 @@ The following will demonstrate how to run the application locally.
 
 1. Start the server:
    ```bash
-   docker run --network host --rm -it fastpaws:latest server
+   docker run --network host --rm -it ghcr.io/heigvd-s3-dai/fastpaws:latest server
    ```
 2. Start the client:
    ```bash
-   docker run --network host --rm -it fastpaws:latest client -I eth0
+   docker run --network host --rm -it ghcr.io/heigvd-s3-dai/fastpaws:latest client -I eth0
    ```
 3. The client will prompt you to enter your username. Enter your username and press enter.
 4. Repeat step 2 and 3 to register a second client.
@@ -176,8 +176,10 @@ fastpaws -h
 To build the docker image, run the following command:
 
 ```bash
-docker build -t fastpaws:latest .
+docker build -t ghcr.io/heigvd-s3-dai/fastpaws:latest .
 ```
+
+// TODO: Add instructions for pushing to ghcr.io
 
 ## References
 
