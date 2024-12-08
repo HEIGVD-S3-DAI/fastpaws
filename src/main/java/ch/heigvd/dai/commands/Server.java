@@ -91,6 +91,10 @@ public class Server implements Callable<Integer> {
     return exitCode;
   }
 
+  /**
+   * Start the server and listen for unicast messages.
+   * @throws IOException if an error occurs while starting the server
+   */
   private void startServer() throws IOException {
     state = new ServerState();
     network = new ServerProtocol(port, multicastAddress, multicastPort);
@@ -99,6 +103,10 @@ public class Server implements Callable<Integer> {
     network.listenForUnicastMessages(this::handleMessage);
   }
 
+  /**
+   * Handle a unicast message from a client.
+   * @param message the message to handle
+   */
   private void handleMessage(Message message) {
     String[] parts = message.getParts();
     Client.Command command = parseClientCommand(parts);
@@ -127,6 +135,11 @@ public class Server implements Callable<Integer> {
     }
   }
 
+  /**
+   * Parse a client command from an array of parts.
+   * @param parts the parts of the command
+   * @return the parsed command or null if the command is unknown
+   */
   private Client.Command parseClientCommand(String[] parts) {
     if (parts.length == 0) return null;
     try {
@@ -136,6 +149,12 @@ public class Server implements Callable<Integer> {
     }
   }
 
+  /**
+   * Check if the number of arguments for a client command is valid.
+   * @param command the command to check
+   * @param parts the parts of the command
+   * @return true if the number of arguments is valid, false otherwise
+   */
   private boolean hasValidArgumentCount(Client.Command command, String[] parts) {
     return switch (command) {
       case USER_JOIN, USER_READY, USER_QUIT -> parts.length == 2;
@@ -143,6 +162,12 @@ public class Server implements Callable<Integer> {
     };
   }
 
+  /**
+   * Handle a user join to the server.
+   * @param username the username of the player
+   * @param address the address of the player
+   * @param port the port of the player
+   */
   private void handleUserJoin(String username, InetAddress address, int port) {
     // Validate username
     if (state.usernameExists(username)) {
@@ -171,6 +196,12 @@ public class Server implements Callable<Integer> {
     handleSuccessfulJoin(username, address, port);
   }
 
+  /**
+   * Handle a successful join to the server.
+   * @param username the username of the player
+   * @param address the address of the player
+   * @param port the port of the player
+   */
   private void handleSuccessfulJoin(String username, InetAddress address, int port) {
     state.registerClient(username, new ClientInfo(address, port));
 
@@ -195,6 +226,12 @@ public class Server implements Callable<Integer> {
     network.multicast(Command.NEW_USER + " " + username);
   }
 
+  /**
+   * Handle a user ready to the server.
+   * @param username the username of the player
+   * @param address the address of the player
+   * @param port the port of the player
+   */
   private void handleUserReady(String username, InetAddress address, int port) {
     if (!state.usernameExists(username)) {
       network.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
@@ -213,6 +250,12 @@ public class Server implements Callable<Integer> {
     }
   }
 
+  /**
+   * Send ready status updates to a client.
+   * @param username the username of the player
+   * @param address the address of the player
+   * @param port the port of the player
+   */
   private void sendReadyStatusUpdates(String username, InetAddress address, int port) {
     String currentUsersReady =
         state.getConnectedClients().keySet().stream()
@@ -224,12 +267,19 @@ public class Server implements Callable<Integer> {
     network.multicast(Command.USER_READY + " " + username);
   }
 
+  /**
+   * Check if the game can start.
+   * @return true if the game can start, false otherwise
+   */
   private boolean canStartGame() {
     return state.isGameWaiting()
         && state.getNumPlayers() >= TypingGame.MIN_PLAYERS_FOR_GAME
         && state.areAllUsersReady();
   }
 
+  /**
+   * Start the game. Starts the game and a new thread to multicast progress updates.
+   */
   private void startGame() {
     for (ClientInfo client : state.getConnectedClients().values()) {
       client.player.setInGame(true);
@@ -245,6 +295,13 @@ public class Server implements Callable<Integer> {
     }
   }
 
+  /**
+   * Handle a user progress update from a client.
+   * @param username the username of the player
+   * @param address the address of the player
+   * @param port the port of the player
+   * @param progress the progress of the player
+   */
   private void handleUserProgress(String username, InetAddress address, int port, int progress) {
     LOGGER.info("USER_PROGRESS: " + username + " " + progress);
     if (!state.usernameExists(username)) {
@@ -265,6 +322,9 @@ public class Server implements Callable<Integer> {
     }
   }
 
+  /**
+   * Multicast progress updates to all clients.
+   */
   private void multicastProgress() {
     while (state.isGameRunning()) {
       StringBuilder sb = new StringBuilder();
@@ -285,6 +345,12 @@ public class Server implements Callable<Integer> {
     }
   }
 
+  /**
+   * Handle a user quit from a client.
+   * @param username the username of the player
+   * @param address the address of the player
+   * @param port the port of the player
+   */
   private void handleUserQuit(String username, InetAddress address, int port) {
     if (!state.usernameExists(username)) {
       network.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
@@ -297,11 +363,21 @@ public class Server implements Callable<Integer> {
     }
   }
 
+  /**
+   * Handle an illegal number of arguments from a client.
+   * @param address the address of the player
+   * @param port the port of the player
+   */
   private void handleIllegalNumberOfArguments(InetAddress address, int port) {
     network.sendUnicast(
         new Message(Command.ERROR + " Illegal number of arguments.", address, port));
   }
 
+  /**
+   * Handle an unknown command from a client.
+   * @param address the address of the player
+   * @param port the port of the player
+   */
   private void handleUnknownCommand(InetAddress address, int port) {
     network.sendUnicast(new Message(Command.ERROR + " Unknown command.", address, port));
   }
