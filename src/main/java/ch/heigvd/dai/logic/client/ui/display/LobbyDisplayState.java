@@ -1,10 +1,8 @@
 package ch.heigvd.dai.logic.client.ui.display;
 
 import ch.heigvd.dai.commands.Client;
-import ch.heigvd.dai.commands.Server;
 import ch.heigvd.dai.logic.client.ui.TerminalUI;
 import ch.heigvd.dai.logic.server.TypingGame;
-import ch.heigvd.dai.logic.shared.Message;
 import ch.heigvd.dai.logic.shared.Player;
 import com.googlecode.lanterna.SGR;
 import com.googlecode.lanterna.TextColor;
@@ -113,18 +111,7 @@ public class LobbyDisplayState extends DisplayState {
         && !ui.getClientState().isPlayerInGame()) {
       String selfUsername = ui.getClientState().getSelfUsername();
       ui.getClientState().setPlayerReady(selfUsername);
-      Message res =
-          ui.getNetwork().sendWithResponseUnicast(Client.Command.USER_READY, selfUsername);
-
-      String[] parts = res.getParts();
-      Server.Command command = Server.Command.fromString(parts[0]);
-      if (command == Server.Command.CURRENT_USERS_READY) {
-        for (int i = 1; i < parts.length; i++) {
-          if (ui.getClientState().playerExists(parts[i])) continue;
-          ui.getClientState().addPlayer(parts[i]);
-          ui.getClientState().setPlayerReady(parts[i]);
-        }
-      }
+      ui.getNetwork().sendUnicast(Client.Command.USER_READY, selfUsername);
     }
   }
 }

@@ -55,7 +55,6 @@ public class Server implements Callable<Integer> {
     USER_JOIN_ERR,
     NEW_USER,
     USER_READY,
-    CURRENT_USERS_READY,
     START_GAME,
     ALL_USERS_PROGRESS,
     END_GAME,
@@ -260,29 +259,11 @@ public class Server implements Callable<Integer> {
     }
 
     state.setUserReady(username);
-    sendReadyStatusUpdates(username, address, port);
+    network.multicast(Command.USER_READY + " " + username);
 
     if (canStartGame()) {
       startGame();
     }
-  }
-
-  /**
-   * Send ready status updates to a client.
-   *
-   * @param username the username of the player
-   * @param address the address of the player
-   * @param port the port of the player
-   */
-  private void sendReadyStatusUpdates(String username, InetAddress address, int port) {
-    String currentUsersReady =
-        state.getConnectedClients().keySet().stream()
-            .filter(state::isUserReady)
-            .reduce("", (acc, player) -> acc + " " + player);
-
-    network.sendUnicast(
-        new Message(Command.CURRENT_USERS_READY + currentUsersReady, address, port));
-    network.multicast(Command.USER_READY + " " + username);
   }
 
   /**
