@@ -54,13 +54,9 @@ public class RaceDisplayState extends DisplayState {
     int fullLen = maxWidth - username.length() - 1;
     int progLen = (int) Math.min(Math.round((double) progress * fullLen / 100), 100);
 
-    StringBuilder sb = new StringBuilder();
-    sb.append("#".repeat(progLen));
-    sb.append(".".repeat(fullLen - progLen));
-    sb.append(" ");
-    sb.append(username);
+    String sb = "#".repeat(progLen) + ".".repeat(fullLen - progLen) + " " + username;
 
-    tg.putString(0, offset, sb.toString());
+    tg.putString(0, offset, sb);
   }
 
   private void renderTypingText(TextGraphics tg, int offset) throws IOException {
@@ -147,14 +143,14 @@ public class RaceDisplayState extends DisplayState {
         lines.add(currentLine.toString());
         currentLine = new StringBuilder(word);
       } else {
-        if (currentLine.length() > 0) {
+        if (!currentLine.isEmpty()) {
           currentLine.append(" ");
         }
         currentLine.append(word);
       }
     }
 
-    if (currentLine.length() > 0) {
+    if (!currentLine.isEmpty()) {
       lines.add(currentLine.toString());
     }
 

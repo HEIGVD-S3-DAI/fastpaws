@@ -4,9 +4,9 @@ import ch.heigvd.dai.logic.shared.Player;
 import java.net.InetAddress;
 
 public class ClientInfo {
-  public InetAddress address;
-  public int port;
-  public Player player;
+  public final InetAddress address;
+  public final int port;
+  public final Player player;
 
   public ClientInfo(InetAddress address, int port) {
     this.address = address;

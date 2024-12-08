@@ -1,13 +1,12 @@
 package ch.heigvd.dai.logic.server;
 
 import ch.heigvd.dai.logic.shared.BaseState;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ServerState extends BaseState {
-  private final Map<String, ClientInfo> connectedClients = new HashMap<>();
+  private final ConcurrentHashMap<String, ClientInfo> connectedClients = new ConcurrentHashMap<>();
 
-  public Map<String, ClientInfo> getConnectedClients() {
+  public ConcurrentHashMap<String, ClientInfo> getConnectedClients() {
     return connectedClients;
   }
 
@@ -27,7 +26,7 @@ public class ServerState extends BaseState {
     return connectedClients.get(username).player.isReady();
   }
 
-  public boolean areAllUsersReady() {
+  public synchronized boolean areAllUsersReady() {
     for (ClientInfo clientInfo : connectedClients.values()) {
       if (!clientInfo.player.isReady()) {
         return false;
@@ -48,7 +47,7 @@ public class ServerState extends BaseState {
     connectedClients.get(username).player.setProgress(progress);
   }
 
-  public void resetPlayers() {
+  public synchronized void resetPlayers() {
     for (ClientInfo clientInfo : connectedClients.values()) {
       clientInfo.player.reset();
     }

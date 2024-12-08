@@ -60,7 +60,6 @@ public class Client implements Callable<Integer> {
   private final Scanner scanner = new Scanner(System.in);
   private ClientProtocol protocol;
   private ClientState state;
-  private TerminalRenderer renderer;
 
   @Override
   public Integer call() {
@@ -74,14 +73,15 @@ public class Client implements Callable<Integer> {
               networkInterface);
       join();
       // Signal the server when quitting
-      Runtime.getRuntime().addShutdownHook(new Thread(() -> quit()));
-      renderer = new TerminalRenderer(state, protocol);
+      Runtime.getRuntime().addShutdownHook(new Thread(this::quit));
+      TerminalRenderer renderer = new TerminalRenderer(state, protocol);
       renderer.start();
       protocol.listenToMulticast(this::handleMulticastMessage);
       renderer.end();
       renderer.join();
     } catch (Exception e) {
       LOGGER.severe("Error in client: " + e.getMessage());
+      e.printStackTrace();
       return 1;
     }
     return 0;
@@ -93,7 +93,7 @@ public class Client implements Callable<Integer> {
       System.out.print("Enter your username: ");
       String username = scanner.nextLine().strip();
 
-      if (username.length() == 0) {
+      if (username.isEmpty()) {
         System.out.println("ERROR: Username cannot be empty");
         continue;
       }
@@ -111,7 +111,7 @@ public class Client implements Callable<Integer> {
           success = true;
           break;
         case USER_JOIN_ERR:
-          handleError("Could not join server", res.getParts());
+          handleJoinError(res.getParts());
           break;
         case null:
         default:
@@ -149,9 +149,9 @@ public class Client implements Callable<Integer> {
     }
   }
 
-  private void handleError(String context, String[] parts) {
+  private void handleJoinError(String[] parts) {
     String err = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));
-    LOGGER.info(context + ": " + err);
+    LOGGER.info("Could not join server" + ": " + err);
     System.out.println("ERROR: " + err);
   }
 

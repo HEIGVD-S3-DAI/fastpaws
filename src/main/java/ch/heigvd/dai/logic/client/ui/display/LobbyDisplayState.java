@@ -17,10 +17,10 @@ import java.util.Map;
 public class LobbyDisplayState extends DisplayState {
 
   private static final String[] HELLO_ASCII = {
-      "   ____         __  ___                ",
-      "  / __/__ ____ / /_/ _ \\___ __    _____",
-      " / _// _ `(_-</ __/ ___/ _ `/ |/|/ (_-<",
-      "/_/  \\_,_/___/\\__/_/   \\_,_/|__,__/___/",
+    "   ____         __  ___                ",
+    "  / __/__ ____ / /_/ _ \\___ __    _____",
+    " / _// _ `(_-</ __/ ___/ _ `/ |/|/ (_-<",
+    "/_/  \\_,_/___/\\__/_/   \\_,_/|__,__/___/",
   };
 
   private long gameStartTime = -1;
@@ -29,7 +29,7 @@ public class LobbyDisplayState extends DisplayState {
     super(renderer);
   }
 
-  public void render(TextGraphics tg) throws IOException {
+  public void render(TextGraphics tg) {
     displayHello(tg);
     displayPlayerList(tg);
   }
@@ -76,7 +76,7 @@ public class LobbyDisplayState extends DisplayState {
       offset++;
     }
 
-    if (!self.isReady() && !renderer.getClientState().arePlayersInGame()) {
+    if (!self.isReady() && !renderer.getClientState().isPlayerInGame()) {
       offset++;
       tg.putString(0, offset, "Press ENTER when ready");
     } else if (allPlayersReady && numConnected >= TypingGame.MIN_PLAYERS_FOR_GAME) {
@@ -96,11 +96,13 @@ public class LobbyDisplayState extends DisplayState {
   public void handleInput(KeyStroke keyStroke) throws IOException {
     super.handleInput(keyStroke);
 
-    if (keyStroke.getKeyType() == KeyType.Enter && !renderer.getClientState().getSelf().isReady()
-        && !renderer.getClientState().arePlayersInGame()) {
+    if (keyStroke.getKeyType() == KeyType.Enter
+        && !renderer.getClientState().getSelf().isReady()
+        && !renderer.getClientState().isPlayerInGame()) {
       String selfUsername = renderer.getClientState().getSelfUsername();
       renderer.getClientState().setPlayerReady(selfUsername);
-      Message res = renderer.getProtocol().sendWithResponseUnicast(Client.Command.USER_READY, selfUsername);
+      Message res =
+          renderer.getProtocol().sendWithResponseUnicast(Client.Command.USER_READY, selfUsername);
 
       String[] parts = res.getParts();
       Server.Command command = null;
@@ -111,8 +113,7 @@ public class LobbyDisplayState extends DisplayState {
       }
       if (command == Server.Command.CURRENT_USERS_READY) {
         for (int i = 1; i < parts.length; i++) {
-          if (renderer.getClientState().playerExists(parts[i]))
-            continue;
+          if (renderer.getClientState().playerExists(parts[i])) continue;
           renderer.getClientState().addPlayer(parts[i]);
           renderer.getClientState().setPlayerReady(parts[i]);
         }

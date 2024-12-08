@@ -137,10 +137,6 @@ public class Server implements Callable<Integer> {
     };
   }
 
-  private void sendErrorResponse(InetAddress address, int port, String message) {
-    protocol.sendUnicast(new Message(Command.ERROR + " " + message, address, port));
-  }
-
   private void handleUserJoin(String username, InetAddress address, int port) {
     // Validate username
     if (state.usernameExists(username)) {
@@ -193,7 +189,7 @@ public class Server implements Callable<Integer> {
 
   private void handleUserReady(String username, InetAddress address, int port) {
     if (!state.usernameExists(username)) {
-      sendErrorResponse(address, port, "User doesn't exist.");
+      protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
       return;
     }
 

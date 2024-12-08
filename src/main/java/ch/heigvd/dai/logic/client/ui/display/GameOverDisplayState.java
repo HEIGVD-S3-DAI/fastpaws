@@ -21,7 +21,7 @@ public class GameOverDisplayState extends DisplayState {
     super(renderer);
   }
 
-  public void render(TextGraphics tg) throws IOException {
+  public void render(TextGraphics tg) {
     // Display GAME OVER ASCII art
     tg.setForegroundColor(TextColor.ANSI.RED_BRIGHT);
     tg.enableModifiers(SGR.BOLD);

@@ -1,9 +1,9 @@
 package ch.heigvd.dai.logic.shared;
 
 public class Player {
-  private boolean isReady = false;
-  private int progress = 0;
-  private boolean inGame = false;
+  private volatile boolean isReady = false;
+  private volatile int progress = 0;
+  private volatile boolean inGame = false;
 
   public boolean isReady() {
     return isReady;
@@ -29,7 +29,7 @@ public class Player {
     this.inGame = inGame;
   }
 
-  public void reset() {
+  public synchronized void reset() {
     isReady = false;
     progress = 0;
     inGame = false;

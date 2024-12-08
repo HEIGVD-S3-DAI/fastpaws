@@ -21,7 +21,7 @@ public abstract class BaseState {
     return gameState == GameState.FINISHED;
   }
 
-  public void setGameState(GameState gameState) {
+  public synchronized void setGameState(GameState gameState) {
     this.gameState = gameState;
   }
 }

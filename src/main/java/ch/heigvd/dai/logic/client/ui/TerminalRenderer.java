@@ -33,7 +33,7 @@ public class TerminalRenderer extends Thread implements UIEventListener {
     this.state = state;
     this.protocol = protocol;
     this.currentDisplay = new LobbyDisplayState(this);
-    state.addUIEventListener(this);
+    state.setUIEventListener(this);
   }
 
   @Override
@@ -124,10 +124,6 @@ public class TerminalRenderer extends Thread implements UIEventListener {
   // Getters for display states to access
   public Terminal getTerminal() {
     return terminal;
-  }
-
-  public Screen getScreen() {
-    return screen;
   }
 
   public ClientState getClientState() {
