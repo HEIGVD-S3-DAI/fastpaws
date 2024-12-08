@@ -11,6 +11,7 @@
 - [Example](#example)
 - [Development](#development)
   - [Building the Docker Image](#building-the-docker-image)
+  - [Pushing the Docker Image](#pushing-the-docker-image)
 - [References](#references)
 - [Authors](#authors)
 
@@ -192,7 +193,13 @@ To build the docker image, run the following command:
 docker build -t ghcr.io/heigvd-s3-dai/fastpaws:latest .
 ```
 
-// TODO: Add instructions for pushing to ghcr.io
+### Pushing the Docker Image
+
+To push the docker image, make sure you have logged in to the registry and run the following command:
+
+```bash
+docker push ghcr.io/heigvd-s3-dai/fastpaws:latest
+```
 
 ## References
 
