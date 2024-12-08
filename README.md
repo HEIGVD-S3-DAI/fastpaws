@@ -62,7 +62,7 @@ docker pull ghcr.io/heigvd-s3-dai/fastpaws:latest
 # Run the application
 docker run --network host --rm -it ghcr.io/heigvd-s3-dai/fastpaws:latest -h
 ```
-
+You should obtain the following output.
 ```bash
 Usage: app.jar [-hV] [COMMAND]
 A typing game client-server application
@@ -74,10 +74,11 @@ Commands:
 ```
 
 ### Server
-
+To see the available commands for server, run the following command.
 ```bash
 docker run --network host --rm -it ghcr.io/heigvd-s3-dai/fastpaws:latest server -h
 ```
+You should obtain the following output.
 
 ```bash
 Usage: app.jar server [-hV] [-H=<host>] [-M=<multicastAddress>] [-p=<port>]
@@ -95,10 +96,12 @@ Start the server to connect to the server
 ```
 
 ### Client
+To see the available commands for client, run the following command.
 
 ```bash
 docker run --network host --rm -it ghcr.io/heigvd-s3-dai/fastpaws:latest client -h
 ```
+You should obtain the following output.
 ```bash
 Usage: app.jar client [-hV] [-H=<serverHost>] -I=<networkInterface>
                       [-M=<serverMulticastAddress>] [-p=<serverPort>]
@@ -131,13 +134,21 @@ The following will demonstrate how to run the application locally.
    docker run --network host --rm -it ghcr.io/heigvd-s3-dai/fastpaws:latest client -I eth0
    ```
 3. The client will prompt you to enter your username. Enter your username and press enter.
-4. Repeat step 2 and 3 to register a second client.
-5. Press enter when you're ready on each client.
+4. Repeat step 2 and 3 in a new terminal to register a second client.
+5. When you're ready, press enter on each client.
 6. When everyone is ready, the game starts. Good luck !
 
 Here's how the waiting screen looks like.
 
 ![Lobby Screenshot](docs/lobby.png)
+
+Here's how it looks like during the game.
+
+![In game Screenshot](docs/ingame.png)
+
+Here's how it looks like when the game is finished.
+
+![End game Screenshot](docs/endgame.png)
 
 ## Development
 
