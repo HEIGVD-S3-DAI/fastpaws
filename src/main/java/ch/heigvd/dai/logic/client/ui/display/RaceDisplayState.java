@@ -37,6 +37,7 @@ public class RaceDisplayState extends DisplayState {
     offset++;
 
     for (Map.Entry<String, Player> entry : renderer.getClientState().getPlayers().entrySet()) {
+      if (!entry.getValue().isInGame()) continue;
       String username = entry.getKey();
       if (username.equals(selfUsername)) {
         continue;
@@ -103,8 +104,10 @@ public class RaceDisplayState extends DisplayState {
 
     Character character = keyStroke.getCharacter();
     if (character != null && cursorIndex < text.length()) {
-      userText.insert(cursorIndex, character);
-      cursorIndex++;
+      // userText.insert(cursorIndex, character);
+      // cursorIndex++;
+      userText.append(text);
+      cursorIndex = text.length();
 
       updateProgress();
     }

@@ -53,7 +53,6 @@ public class Server implements Callable<Integer> {
   public enum Command {
     OK,
     USER_JOIN_ERR,
-    WAIT,
     NEW_USER,
     USER_READY,
     CURRENT_USERS_READY,
@@ -166,18 +165,14 @@ public class Server implements Callable<Integer> {
       return;
     }
 
-    if (!state.isGameRunning()) {
-      handleSuccessfulJoin(username, address, port);
-    } else {
-      protocol.sendUnicast(new Message(Command.WAIT.toString(), address, port));
-    }
+    // Always allow joining, regardless of game state
+    handleSuccessfulJoin(username, address, port);
   }
 
   private void handleSuccessfulJoin(String username, InetAddress address, int port) {
-    state.setGameState(BaseState.GameState.WAITING);
     state.registerClient(username, new ClientInfo(address, port));
 
-    // Build list of current players with their ready state
+    // Build list of current players with their ready state or in-game state
     StringBuilder currentUsers = new StringBuilder();
     for (Map.Entry<String, ClientInfo> entry : state.getConnectedClients().entrySet()) {
       String existingUser = entry.getKey();
@@ -186,11 +181,11 @@ public class Server implements Callable<Integer> {
             .append(" ")
             .append(existingUser)
             .append(" ")
-            .append(state.isUserReady(existingUser) ? "1" : "0");
+            .append(state.isGameRunning() ? "2" : (state.isUserReady(existingUser) ? "1" : "0"));
       }
     }
 
-    // Send OK with current users list and their ready states
+    // Send OK with current users list and their states
     protocol.sendUnicast(new Message(Command.OK + currentUsers.toString(), address, port));
     // Notify others of new user
     protocol.multicast(Command.NEW_USER + " " + username);
@@ -200,6 +195,10 @@ public class Server implements Callable<Integer> {
     if (!state.usernameExists(username)) {
       sendErrorResponse(address, port, "User doesn't exist.");
       return;
+    }
+
+    if (state.isGameFinished()) {
+      state.setGameState(BaseState.GameState.WAITING);
     }
 
     state.setUserReady(username);
@@ -222,10 +221,15 @@ public class Server implements Callable<Integer> {
   }
 
   private boolean canStartGame() {
-    return state.getNumPlayers() >= TypingGame.MIN_PLAYERS_FOR_GAME && state.areAllUsersReady();
+    return state.isGameWaiting()
+        && state.getNumPlayers() >= TypingGame.MIN_PLAYERS_FOR_GAME
+        && state.areAllUsersReady();
   }
 
   private void startGame() {
+    for (ClientInfo client : state.getConnectedClients().values()) {
+      client.player.setInGame(true);
+    }
     LOGGER.info("Starting game in " + TypingGame.GAME_START_DELAY + " seconds...");
     try {
       TimeUnit.SECONDS.sleep(TypingGame.GAME_START_DELAY);
@@ -241,6 +245,9 @@ public class Server implements Callable<Integer> {
     LOGGER.info("USER_PROGRESS: " + username + " " + progress);
     if (!state.usernameExists(username)) {
       protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
+    } else if (!state.getConnectedClients().get(username).player.isInGame()) {
+      protocol.sendUnicast(
+          new Message(Command.ERROR + " " + "User is not in game.", address, port));
     } else if (progress < 0 || progress > 100) {
       protocol.sendUnicast(new Message(Command.ERROR + " " + "Invalid score.", address, port));
     } else {
@@ -259,10 +266,12 @@ public class Server implements Callable<Integer> {
     while (state.isGameRunning()) {
       StringBuilder sb = new StringBuilder();
       for (Map.Entry<String, ClientInfo> entry : state.getConnectedClients().entrySet()) {
-        sb.append(" ");
-        sb.append(entry.getKey());
-        sb.append(" ");
-        sb.append(entry.getValue().player.getProgress());
+        if (entry.getValue().player.isInGame()) {
+          sb.append(" ");
+          sb.append(entry.getKey());
+          sb.append(" ");
+          sb.append(entry.getValue().player.getProgress());
+        }
       }
       protocol.multicast(Command.ALL_USERS_PROGRESS + sb.toString());
       try {

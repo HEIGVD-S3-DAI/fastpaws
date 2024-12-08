@@ -28,8 +28,9 @@ public class ClientState extends BaseState {
     return players;
   }
 
-  public boolean getSelfIsReady() {
-    return players.get(selfUsername).isReady();
+  public Player getSelf() {
+    assert players.containsKey(selfUsername);
+    return players.get(selfUsername);
   }
 
   public boolean playerExists(String username) {
@@ -41,6 +42,7 @@ public class ClientState extends BaseState {
   }
 
   public void removePlayer(String username) {
+    assert players.containsKey(username);
     players.remove(username);
   }
 
@@ -51,9 +53,6 @@ public class ClientState extends BaseState {
   }
 
   public void setPlayerReady(String username) {
-    if (!players.containsKey(username)) {
-      throw new RuntimeException("User does not exist");
-    }
     players.get(username).setReady(true);
   }
 
@@ -67,6 +66,7 @@ public class ClientState extends BaseState {
   }
 
   public void setPlayerProgress(String username, int progress) {
+    assert players.containsKey(username);
     players.get(username).setProgress(progress);
   }
 
@@ -101,5 +101,14 @@ public class ClientState extends BaseState {
       }
     }
     return winner;
+  }
+
+  public boolean arePlayersInGame() {
+    for (Player player : players.values()) {
+      if (player.isInGame()) {
+        return true;
+      }
+    }
+    return false;
   }
 }

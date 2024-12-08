@@ -6,6 +6,7 @@ import ch.heigvd.dai.logic.client.ui.TerminalRenderer;
 import ch.heigvd.dai.logic.client.ui.event.UIEvent;
 import ch.heigvd.dai.logic.shared.BaseState;
 import ch.heigvd.dai.logic.shared.Message;
+import ch.heigvd.dai.logic.shared.Player;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Scanner;
@@ -112,10 +113,6 @@ public class Client implements Callable<Integer> {
         case USER_JOIN_ERR:
           handleError("Could not join server", res.getParts());
           break;
-        case WAIT:
-          LOGGER.info("Waiting for the current game to finish...");
-          protocol.listenToMulticast(this::waitForNextGame);
-          break;
         case null:
         default:
           LOGGER.severe("Unknown message");
@@ -140,11 +137,13 @@ public class Client implements Callable<Integer> {
     // Add existing users to state
     for (int i = 1; i + 1 < parts.length; i += 2) {
       String player = parts[i];
-      boolean isReady = parts[i + 1].equals("1");
+      String status = parts[i + 1];
       if (!player.isEmpty()) {
         state.addPlayer(player);
-        if (isReady) {
+        if (status.equals("1")) {
           state.setPlayerReady(player);
+        } else if (status.equals("2")) {
+          state.getPlayers().get(player).setInGame(true);
         }
       }
     }
@@ -162,21 +161,6 @@ public class Client implements Callable<Integer> {
     } catch (IOException e) {
       // Note: We ignore the exception as this is called through an exit signal
       LOGGER.severe("Failed to disconnect from server");
-    }
-  }
-
-  private void waitForNextGame(String message) {
-    String[] parts = message.split("\\s+");
-    LOGGER.info("Received message: " + message);
-
-    Server.Command command = null;
-    try {
-      command = Server.Command.valueOf(parts[0]);
-    } catch (Exception e) {
-      LOGGER.warning("Received unknown command: " + message);
-    }
-    if (command == Server.Command.END_GAME) {
-      protocol.closeMulticast();
     }
   }
 
@@ -231,6 +215,9 @@ public class Client implements Callable<Integer> {
 
   private void handleStartGame(String text) {
     state.setGameState(BaseState.GameState.RUNNING);
+    for (Player player : state.getPlayers().values()) {
+      player.setInGame(true);
+    }
     state.fireUIEvent(new UIEvent(UIEvent.EventType.RACE_TEXT_RECEIVED, text));
   }
 
@@ -245,7 +232,10 @@ public class Client implements Callable<Integer> {
   }
 
   private void handleEndGame(String winner) {
+    if (state.getSelf().isInGame()) {
+      // TODO: Use winner from server
+      state.setGameState(BaseState.GameState.FINISHED);
+    }
     state.resetPlayers();
-    state.setGameState(BaseState.GameState.FINISHED);
   }
 }
