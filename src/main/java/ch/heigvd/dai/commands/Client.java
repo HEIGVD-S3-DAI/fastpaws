@@ -7,48 +7,45 @@ import ch.heigvd.dai.logic.client.ui.event.UIEvent;
 import ch.heigvd.dai.logic.shared.BaseState;
 import ch.heigvd.dai.logic.shared.Message;
 import ch.heigvd.dai.logic.shared.Player;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.logging.Logger;
-
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "client", description = "Start a client to connect to the server")
 public class Client implements Callable<Integer> {
-  @CommandLine.ParentCommand
-  private Root parent;
+  @CommandLine.ParentCommand private Root parent;
 
   @CommandLine.Option(
-          names = {"-M", "--multicast-address"},
-          description = "Multicast address to use for the server (default: ${DEFAULT-VALUE}).",
-          defaultValue = "230.0.0.0")
+      names = {"-M", "--multicast-address"},
+      description = "Multicast address to use for the server (default: ${DEFAULT-VALUE}).",
+      defaultValue = "230.0.0.0")
   protected String serverMulticastAddress;
 
   @CommandLine.Option(
-          names = {"-H", "--serverHost"},
-          description = "Server host (default: ${DEFAULT-VALUE}).",
-          defaultValue = "localhost")
+      names = {"-H", "--serverHost"},
+      description = "Server host (default: ${DEFAULT-VALUE}).",
+      defaultValue = "localhost")
   protected String serverHost;
 
   @CommandLine.Option(
-          names = {"-p", "--serverPort"},
-          description = "Port to use for the server (default: ${DEFAULT-VALUE}).",
-          defaultValue = "4445")
+      names = {"-p", "--serverPort"},
+      description = "Port to use for the server (default: ${DEFAULT-VALUE}).",
+      defaultValue = "4445")
   protected int serverPort;
 
   @CommandLine.Option(
-          names = {"-pm", "--serverMulticastPort"},
-          description = "Port to use for the server multicast (default: ${DEFAULT-VALUE}).",
-          defaultValue = "4446")
+      names = {"-pm", "--serverMulticastPort"},
+      description = "Port to use for the server multicast (default: ${DEFAULT-VALUE}).",
+      defaultValue = "4446")
   protected int serverMulticastPort;
 
   @CommandLine.Option(
-          names = {"-I", "--network-interface"},
-          description = "Network interface to use",
-          required = true)
+      names = {"-I", "--network-interface"},
+      description = "Network interface to use",
+      required = true)
   protected String networkInterface;
 
   public enum Command {
@@ -68,12 +65,12 @@ public class Client implements Callable<Integer> {
   public Integer call() {
     try {
       network =
-              new ClientProtocol(
-                      serverHost,
-                      serverPort,
-                      serverMulticastAddress,
-                      serverMulticastPort,
-                      networkInterface);
+          new ClientProtocol(
+              serverHost,
+              serverPort,
+              serverMulticastAddress,
+              serverMulticastPort,
+              networkInterface);
       connectToGame();
       startGameUI();
     } catch (Exception e) {
@@ -85,6 +82,7 @@ public class Client implements Callable<Integer> {
 
   /**
    * Connect to the game by sending a USER_JOIN command to the server.
+   *
    * @throws IOException if an error occurs while sending the command
    */
   private void connectToGame() throws IOException {
@@ -103,7 +101,7 @@ public class Client implements Callable<Integer> {
       }
 
       Message res = network.sendWithResponseUnicast(Command.USER_JOIN, username);
-      Server.Command command = parseServerCommand(res.getParts());
+      Server.Command command = Server.Command.fromString(res.getParts()[0]);
 
       switch (command) {
         case OK:
@@ -124,6 +122,7 @@ public class Client implements Callable<Integer> {
 
   /**
    * Start the game UI and listen to multicast messages from the server.
+   *
    * @throws IOException if an error occurs while starting the UI
    * @throws InterruptedException if the UI is interrupted
    */
@@ -136,34 +135,8 @@ public class Client implements Callable<Integer> {
   }
 
   /**
-   * Parse a server command from an array of parts.
-   * @param parts the parts of the command
-   * @return the parsed command or null if the command is unknown
-   */
-  private Server.Command parseServerCommand(String[] parts) {
-    if (parts.length == 0) return null;
-    try {
-      return Server.Command.valueOf(parts[0]);
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  /**
-   * Parse a player state from a string.
-   * @param status the status of the player
-   * @return the parsed player state or null if the state is unknown
-   */
-  private Server.CommandPlayerState parsePlayerState(String status) {
-    try {
-      return Server.CommandPlayerState.valueOf(status);
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  /**
    * Handle a successful join to the server.
+   *
    * @param username the username of the player
    * @param parts the parts of the command
    */
@@ -178,10 +151,9 @@ public class Client implements Callable<Integer> {
       String status = parts[i + 1];
       if (!player.isEmpty()) {
         state.addPlayer(player);
-        Server.CommandPlayerState playerState = parsePlayerState(status);
+        Server.CommandPlayerState playerState = Server.CommandPlayerState.fromString(status);
         if (playerState == null) {
-          LOGGER.warning("Unknown player state: " + status);
-          continue;
+          throw new RuntimeException("Unknown player state: " + status);
         }
         switch (playerState) {
           case READY -> state.setPlayerReady(player);
@@ -193,6 +165,7 @@ public class Client implements Callable<Integer> {
 
   /**
    * Handle a join error from the server.
+   *
    * @param parts the parts of the command
    */
   private void handleJoinError(String[] parts) {
@@ -201,9 +174,7 @@ public class Client implements Callable<Integer> {
     System.out.println("ERROR: " + err);
   }
 
-  /**
-   * Send a USER_QUIT command to the server to signal the end of the game.
-   */
+  /** Send a USER_QUIT command to the server to signal the end of the game. */
   private void quit() {
     try {
       network.sendUnicast(Command.USER_QUIT, state.getSelfUsername());
@@ -215,13 +186,14 @@ public class Client implements Callable<Integer> {
 
   /**
    * Handle a multicast message from the server.
+   *
    * @param message the message to handle
    */
   private void handleMulticastMessage(String message) {
     String[] parts = message.split("\\s+");
     LOGGER.info("Received message: " + message);
 
-    Server.Command command = parseServerCommand(parts);
+    Server.Command command = Server.Command.fromString(parts[0]);
     if (command == null) {
       LOGGER.warning("Received unknown command: " + message);
       return;
@@ -241,6 +213,7 @@ public class Client implements Callable<Integer> {
 
   /**
    * Handle a new user joining the server.
+   *
    * @param username the username of the player
    */
   private void handleUserJoin(String username) {
@@ -251,6 +224,7 @@ public class Client implements Callable<Integer> {
 
   /**
    * Handle a user readying up to the server.
+   *
    * @param username the username of the player
    */
   private void handleUserReady(String username) {
@@ -265,6 +239,7 @@ public class Client implements Callable<Integer> {
 
   /**
    * Handle a start game command from the server.
+   *
    * @param text the text of the game
    */
   private void handleStartGame(String text) {
@@ -277,6 +252,7 @@ public class Client implements Callable<Integer> {
 
   /**
    * Handle a user progress update from the server.
+   *
    * @param message the message to handle
    */
   private void handleUpdateUsersProgress(String[] message) {
@@ -287,6 +263,7 @@ public class Client implements Callable<Integer> {
 
   /**
    * Handle a user delete command from the server.
+   *
    * @param username the username of the player
    */
   private void handleUserDelete(String username) {
@@ -295,12 +272,12 @@ public class Client implements Callable<Integer> {
 
   /**
    * Handle an end game command from the server.
+   *
    * @param winner the username of the winner
    */
   private void handleEndGame(String winner) {
     if (state.getSelf().isInGame()) {
-      // TODO: Use winner from server
-      state.setGameState(BaseState.GameState.FINISHED);
+      state.setEndGameWinner(winner);
     }
     state.resetPlayers();
   }

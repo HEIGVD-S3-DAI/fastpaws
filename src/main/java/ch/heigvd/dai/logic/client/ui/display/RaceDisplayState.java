@@ -100,10 +100,8 @@ public class RaceDisplayState extends DisplayState {
 
     Character character = keyStroke.getCharacter();
     if (character != null && cursorIndex < text.length()) {
-      // userText.insert(cursorIndex, character);
-      // cursorIndex++;
-      userText.append(text);
-      cursorIndex = text.length();
+      userText.insert(cursorIndex, character);
+      cursorIndex++;
 
       updateProgress();
     }

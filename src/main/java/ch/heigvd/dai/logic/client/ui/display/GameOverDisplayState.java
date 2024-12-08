@@ -17,8 +17,11 @@ public class GameOverDisplayState extends DisplayState {
     " \\___/\\_,_/_/_/_/\\__/\\____/|___/\\__/_/",
   };
 
-  public GameOverDisplayState(TerminalUI ui) {
+  private final String winner;
+
+  public GameOverDisplayState(TerminalUI ui, String winner) {
     super(ui);
+    this.winner = winner;
   }
 
   public void render(TextGraphics tg) {
@@ -33,7 +36,6 @@ public class GameOverDisplayState extends DisplayState {
 
     // Display winner message
     String selfUsername = ui.getClientState().getSelfUsername();
-    String winner = ui.getClientState().getWinner();
     String message =
         winner.equals(selfUsername)
             ? "Congratulations! You won the game!"

@@ -21,6 +21,13 @@ public class LobbyDisplayState extends DisplayState {
     "  / __/__ ____ / /_/ _ \\___ __    _____",
     " / _// _ `(_-</ __/ ___/ _ `/ |/|/ (_-<",
     "/_/  \\_,_/___/\\__/_/   \\_,_/|__,__/___/",
+    "",
+  };
+
+  private static final String[] GAME_INSTRUCTIONS = {
+    "Type the given paragraph without any",
+    "mistakes to win the game. Good luck!",
+    "At anytime, press ESC or [q] to quit."
   };
 
   private long gameStartTime = -1;
@@ -41,10 +48,15 @@ public class LobbyDisplayState extends DisplayState {
       tg.putString(0, i, HELLO_ASCII[i]);
     }
     tg.disableModifiers(SGR.BOLD);
+    tg.setForegroundColor(TextColor.ANSI.BLACK_BRIGHT);
+    for (int i = 0; i < GAME_INSTRUCTIONS.length; ++i) {
+      tg.putString(0, HELLO_ASCII.length + i, GAME_INSTRUCTIONS[i]);
+    }
     tg.setForegroundColor(TextColor.ANSI.DEFAULT);
   }
 
   private void displayPlayerList(TextGraphics tg) {
+    int offset = HELLO_ASCII.length + GAME_INSTRUCTIONS.length;
     String selfUsername = ui.getClientState().getSelfUsername();
     Player self = ui.getClientState().getPlayers().get(selfUsername);
     int numConnected = ui.getClientState().getPlayers().size();
@@ -53,13 +65,15 @@ public class LobbyDisplayState extends DisplayState {
     tg.enableModifiers(SGR.BOLD);
     tg.enableModifiers(SGR.UNDERLINE);
     tg.putString(
-        0, 6, "Connected Players (" + numConnected + "/" + TypingGame.MIN_PLAYERS_FOR_GAME + "):");
+        0,
+        ++offset,
+        "Connected Players (" + numConnected + "/" + TypingGame.MIN_PLAYERS_FOR_GAME + "):");
     tg.disableModifiers(SGR.BOLD);
     tg.disableModifiers(SGR.UNDERLINE);
     tg.putString(
-        0, 7, "  - " + selfUsername + " (you)" + (self.isReady() ? " [ready]" : " [not ready]"));
-
-    int offset = 8;
+        0,
+        ++offset,
+        "  - " + selfUsername + (self.isReady() ? " [ready]" : " [not ready]") + " (you)");
     for (Map.Entry<String, Player> entry : ui.getClientState().getPlayers().entrySet()) {
       String username = entry.getKey();
       if (username.equals(selfUsername)) {
@@ -68,25 +82,22 @@ public class LobbyDisplayState extends DisplayState {
       Player player = entry.getValue();
       String status;
       if (player.isInGame()) {
-        status = " [in game]";
+        status = " [in game " + player.getProgress() + "%]";
       } else {
         status = player.isReady() ? " [ready]" : " [not ready]";
       }
-      tg.putString(0, offset, "  - " + username + status);
-      offset++;
+      tg.putString(0, ++offset, "  - " + username + status);
     }
+    offset++;
 
     if (!self.isReady() && !ui.getClientState().isPlayerInGame()) {
-      offset++;
-      tg.putString(0, offset, "Press ENTER when ready");
+      tg.putString(0, ++offset, "Press ENTER when ready");
     } else if (allPlayersReady && numConnected >= TypingGame.MIN_PLAYERS_FOR_GAME) {
-      offset++;
       if (gameStartTime == -1) {
         gameStartTime = System.currentTimeMillis() + TypingGame.GAME_START_DELAY * 1000;
       }
-
       long remainingTime = Math.max(0, (gameStartTime - System.currentTimeMillis()) / 1000);
-      tg.putString(0, offset, "Game starting in " + remainingTime + " seconds...");
+      tg.putString(0, ++offset, "Game starting in " + remainingTime + " seconds...");
     } else {
       gameStartTime = -1;
     }

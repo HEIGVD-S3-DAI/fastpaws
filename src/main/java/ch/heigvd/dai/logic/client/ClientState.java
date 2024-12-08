@@ -4,7 +4,6 @@ import ch.heigvd.dai.logic.client.ui.event.UIEvent;
 import ch.heigvd.dai.logic.client.ui.event.UIEventListener;
 import ch.heigvd.dai.logic.shared.BaseState;
 import ch.heigvd.dai.logic.shared.Player;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ClientState extends BaseState {
@@ -85,17 +84,9 @@ public class ClientState extends BaseState {
     uiEventListener.onUIEvent(event);
   }
 
-  public synchronized String getWinner() {
-    // Winner is the player with the highest score
-    String winner = null;
-    int maxScore = -1;
-    for (Map.Entry<String, Player> entry : players.entrySet()) {
-      if (entry.getValue().getProgress() > maxScore) {
-        maxScore = entry.getValue().getProgress();
-        winner = entry.getKey();
-      }
-    }
-    return winner;
+  public void setEndGameWinner(String winner) {
+    super.setGameState(GameState.FINISHED);
+    fireUIEvent(new UIEvent(UIEvent.EventType.END_GAME, winner));
   }
 
   public synchronized boolean isPlayerInGame() {

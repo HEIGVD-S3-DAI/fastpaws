@@ -48,10 +48,10 @@ public class TerminalUI extends Thread implements UIEventListener {
           case RUNNING:
             currentDisplay = new RaceDisplayState(this);
             break;
-          case FINISHED:
-            currentDisplay = new GameOverDisplayState(this);
-            break;
         }
+        break;
+      case END_GAME:
+        currentDisplay = new GameOverDisplayState(this, (String) event.getData());
         break;
       case RACE_TEXT_RECEIVED:
         if (currentDisplay instanceof RaceDisplayState) {

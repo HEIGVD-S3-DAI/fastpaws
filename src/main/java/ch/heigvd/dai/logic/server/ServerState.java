@@ -47,6 +47,15 @@ public class ServerState extends BaseState {
     connectedClients.get(username).player.setProgress(progress);
   }
 
+  public synchronized boolean isPlayerInGame() {
+    for (ClientInfo clientInfo : connectedClients.values()) {
+      if (clientInfo.player.isInGame()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public synchronized void resetPlayers() {
     for (ClientInfo clientInfo : connectedClients.values()) {
       clientInfo.player.reset();

@@ -19,6 +19,7 @@ public class UIEvent {
 
   public enum EventType {
     RACE_TEXT_RECEIVED,
-    GAME_STATE_CHANGED
+    GAME_STATE_CHANGED,
+    END_GAME
   }
 }

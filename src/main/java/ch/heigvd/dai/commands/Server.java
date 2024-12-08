@@ -60,18 +60,28 @@ public class Server implements Callable<Integer> {
     ALL_USERS_PROGRESS,
     END_GAME,
     DEL_USER,
-    ERROR,
+    ERROR;
+
+    public static Command fromString(String text) {
+      try {
+        return valueOf(text);
+      } catch (IllegalArgumentException e) {
+        return null;
+      }
+    }
   }
 
   public enum CommandPlayerState {
-    NOT_READY(0),
-    READY(1),
-    IN_GAME(2);
+    NOT_READY,
+    READY,
+    IN_GAME;
 
-    private final int value;
-
-    CommandPlayerState(int value) {
-      this.value = value;
+    public static CommandPlayerState fromString(String text) {
+      try {
+        return valueOf(text);
+      } catch (IllegalArgumentException e) {
+        return null;
+      }
     }
   }
 
@@ -93,6 +103,7 @@ public class Server implements Callable<Integer> {
 
   /**
    * Start the server and listen for unicast messages.
+   *
    * @throws IOException if an error occurs while starting the server
    */
   private void startServer() throws IOException {
@@ -105,6 +116,7 @@ public class Server implements Callable<Integer> {
 
   /**
    * Handle a unicast message from a client.
+   *
    * @param message the message to handle
    */
   private void handleMessage(Message message) {
@@ -137,6 +149,7 @@ public class Server implements Callable<Integer> {
 
   /**
    * Parse a client command from an array of parts.
+   *
    * @param parts the parts of the command
    * @return the parsed command or null if the command is unknown
    */
@@ -151,6 +164,7 @@ public class Server implements Callable<Integer> {
 
   /**
    * Check if the number of arguments for a client command is valid.
+   *
    * @param command the command to check
    * @param parts the parts of the command
    * @return true if the number of arguments is valid, false otherwise
@@ -164,6 +178,7 @@ public class Server implements Callable<Integer> {
 
   /**
    * Handle a user join to the server.
+   *
    * @param username the username of the player
    * @param address the address of the player
    * @param port the port of the player
@@ -198,6 +213,7 @@ public class Server implements Callable<Integer> {
 
   /**
    * Handle a successful join to the server.
+   *
    * @param username the username of the player
    * @param address the address of the player
    * @param port the port of the player
@@ -216,7 +232,7 @@ public class Server implements Callable<Integer> {
                 : (state.isUserReady(existingUser)
                     ? CommandPlayerState.READY
                     : CommandPlayerState.NOT_READY);
-        currentUsers.append(" ").append(existingUser).append(" ").append(playerState.value);
+        currentUsers.append(" ").append(existingUser).append(" ").append(playerState);
       }
     }
 
@@ -228,6 +244,7 @@ public class Server implements Callable<Integer> {
 
   /**
    * Handle a user ready to the server.
+   *
    * @param username the username of the player
    * @param address the address of the player
    * @param port the port of the player
@@ -252,6 +269,7 @@ public class Server implements Callable<Integer> {
 
   /**
    * Send ready status updates to a client.
+   *
    * @param username the username of the player
    * @param address the address of the player
    * @param port the port of the player
@@ -269,6 +287,7 @@ public class Server implements Callable<Integer> {
 
   /**
    * Check if the game can start.
+   *
    * @return true if the game can start, false otherwise
    */
   private boolean canStartGame() {
@@ -277,9 +296,7 @@ public class Server implements Callable<Integer> {
         && state.areAllUsersReady();
   }
 
-  /**
-   * Start the game. Starts the game and a new thread to multicast progress updates.
-   */
+  /** Start the game. Starts the game and a new thread to multicast progress updates. */
   private void startGame() {
     for (ClientInfo client : state.getConnectedClients().values()) {
       client.player.setInGame(true);
@@ -297,6 +314,7 @@ public class Server implements Callable<Integer> {
 
   /**
    * Handle a user progress update from a client.
+   *
    * @param username the username of the player
    * @param address the address of the player
    * @param port the port of the player
@@ -322,9 +340,7 @@ public class Server implements Callable<Integer> {
     }
   }
 
-  /**
-   * Multicast progress updates to all clients.
-   */
+  /** Multicast progress updates to all clients. */
   private void multicastProgress() {
     while (state.isGameRunning()) {
       StringBuilder sb = new StringBuilder();
@@ -347,6 +363,7 @@ public class Server implements Callable<Integer> {
 
   /**
    * Handle a user quit from a client.
+   *
    * @param username the username of the player
    * @param address the address of the player
    * @param port the port of the player
@@ -357,7 +374,7 @@ public class Server implements Callable<Integer> {
     } else {
       network.multicast(Command.DEL_USER + " " + username);
       state.removeUser(username);
-      if (state.getConnectedClients().isEmpty()) {
+      if (!state.isPlayerInGame()) {
         state.setGameState(BaseState.GameState.FINISHED);
       }
     }
@@ -365,6 +382,7 @@ public class Server implements Callable<Integer> {
 
   /**
    * Handle an illegal number of arguments from a client.
+   *
    * @param address the address of the player
    * @param port the port of the player
    */
@@ -375,6 +393,7 @@ public class Server implements Callable<Integer> {
 
   /**
    * Handle an unknown command from a client.
+   *
    * @param address the address of the player
    * @param port the port of the player
    */
