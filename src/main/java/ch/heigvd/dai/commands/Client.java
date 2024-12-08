@@ -2,50 +2,53 @@ package ch.heigvd.dai.commands;
 
 import ch.heigvd.dai.logic.client.ClientProtocol;
 import ch.heigvd.dai.logic.client.ClientState;
-import ch.heigvd.dai.logic.client.ui.TerminalRenderer;
+import ch.heigvd.dai.logic.client.ui.TerminalUI;
 import ch.heigvd.dai.logic.client.ui.event.UIEvent;
 import ch.heigvd.dai.logic.shared.BaseState;
 import ch.heigvd.dai.logic.shared.Message;
 import ch.heigvd.dai.logic.shared.Player;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.logging.Logger;
+
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "client", description = "Start a client to connect to the server")
 public class Client implements Callable<Integer> {
-  @CommandLine.ParentCommand private Root parent;
+  @CommandLine.ParentCommand
+  private Root parent;
 
   @CommandLine.Option(
-      names = {"-M", "--multicast-address"},
-      description = "Multicast address to use for the server (default: ${DEFAULT-VALUE}).",
-      defaultValue = "230.0.0.0")
+          names = {"-M", "--multicast-address"},
+          description = "Multicast address to use for the server (default: ${DEFAULT-VALUE}).",
+          defaultValue = "230.0.0.0")
   protected String serverMulticastAddress;
 
   @CommandLine.Option(
-      names = {"-H", "--serverHost"},
-      description = "Server host (default: ${DEFAULT-VALUE}).",
-      defaultValue = "localhost")
+          names = {"-H", "--serverHost"},
+          description = "Server host (default: ${DEFAULT-VALUE}).",
+          defaultValue = "localhost")
   protected String serverHost;
 
   @CommandLine.Option(
-      names = {"-p", "--serverPort"},
-      description = "Port to use for the server (default: ${DEFAULT-VALUE}).",
-      defaultValue = "4445")
+          names = {"-p", "--serverPort"},
+          description = "Port to use for the server (default: ${DEFAULT-VALUE}).",
+          defaultValue = "4445")
   protected int serverPort;
 
   @CommandLine.Option(
-      names = {"-pm", "--serverMulticastPort"},
-      description = "Port to use for the server multicast (default: ${DEFAULT-VALUE}).",
-      defaultValue = "4446")
+          names = {"-pm", "--serverMulticastPort"},
+          description = "Port to use for the server multicast (default: ${DEFAULT-VALUE}).",
+          defaultValue = "4446")
   protected int serverMulticastPort;
 
   @CommandLine.Option(
-      names = {"-I", "--network-interface"},
-      description = "Network interface to use",
-      required = true)
+          names = {"-I", "--network-interface"},
+          description = "Network interface to use",
+          required = true)
   protected String networkInterface;
 
   public enum Command {
@@ -58,36 +61,29 @@ public class Client implements Callable<Integer> {
   private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
 
   private final Scanner scanner = new Scanner(System.in);
-  private ClientProtocol protocol;
+  private ClientProtocol network;
   private ClientState state;
 
   @Override
   public Integer call() {
     try {
-      protocol =
-          new ClientProtocol(
-              serverHost,
-              serverPort,
-              serverMulticastAddress,
-              serverMulticastPort,
-              networkInterface);
-      join();
-      // Signal the server when quitting
-      Runtime.getRuntime().addShutdownHook(new Thread(this::quit));
-      TerminalRenderer renderer = new TerminalRenderer(state, protocol);
-      renderer.start();
-      protocol.listenToMulticast(this::handleMulticastMessage);
-      renderer.end();
-      renderer.join();
+      network =
+              new ClientProtocol(
+                      serverHost,
+                      serverPort,
+                      serverMulticastAddress,
+                      serverMulticastPort,
+                      networkInterface);
+      connectToGame();
+      startGameUI();
     } catch (Exception e) {
       LOGGER.severe("Error in client: " + e.getMessage());
-      e.printStackTrace();
       return 1;
     }
     return 0;
   }
 
-  private void join() throws IOException {
+  private void connectToGame() throws IOException {
     boolean success = false;
     do {
       System.out.print("Enter your username: ");
@@ -102,7 +98,7 @@ public class Client implements Callable<Integer> {
         continue;
       }
 
-      Message res = protocol.sendWithResponseUnicast(Command.USER_JOIN, username);
+      Message res = network.sendWithResponseUnicast(Command.USER_JOIN, username);
       Server.Command command = parseServerCommand(res.getParts());
 
       switch (command) {
@@ -118,12 +114,30 @@ public class Client implements Callable<Integer> {
           LOGGER.severe("Unknown message");
       }
     } while (!success);
+    // Signal the server when quitting
+    Runtime.getRuntime().addShutdownHook(new Thread(this::quit));
+  }
+
+  private void startGameUI() throws IOException, InterruptedException {
+    TerminalUI ui = new TerminalUI(state, network);
+    ui.start();
+    network.listenToMulticast(this::handleMulticastMessage); // Blocking until the socket is closed
+    ui.end();
+    ui.join();
   }
 
   private Server.Command parseServerCommand(String[] parts) {
     if (parts.length == 0) return null;
     try {
       return Server.Command.valueOf(parts[0]);
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  private Server.CommandPlayerState parsePlayerState(String status) {
+    try {
+      return Server.CommandPlayerState.valueOf(status);
     } catch (Exception e) {
       return null;
     }
@@ -140,10 +154,14 @@ public class Client implements Callable<Integer> {
       String status = parts[i + 1];
       if (!player.isEmpty()) {
         state.addPlayer(player);
-        if (status.equals("1")) {
-          state.setPlayerReady(player);
-        } else if (status.equals("2")) {
-          state.getPlayers().get(player).setInGame(true);
+        Server.CommandPlayerState playerState = parsePlayerState(status);
+        if (playerState == null) {
+          LOGGER.warning("Unknown player state: " + status);
+          continue;
+        }
+        switch (playerState) {
+          case READY -> state.setPlayerReady(player);
+          case IN_GAME -> state.getPlayers().get(player).setInGame(true);
         }
       }
     }
@@ -157,7 +175,7 @@ public class Client implements Callable<Integer> {
 
   private void quit() {
     try {
-      protocol.sendUnicast(Command.USER_QUIT, state.getSelfUsername());
+      network.sendUnicast(Command.USER_QUIT, state.getSelfUsername());
     } catch (IOException e) {
       // Note: We ignore the exception as this is called through an exit signal
       LOGGER.severe("Failed to disconnect from server");
@@ -175,31 +193,20 @@ public class Client implements Callable<Integer> {
     }
 
     switch (command) {
-      case NEW_USER:
-        if (!parts[1].equals(state.getSelfUsername())) {
-          state.addPlayer(parts[1]);
-        }
-        break;
-      case USER_READY:
-        handleUserReady(parts[1]);
-        break;
-      case START_GAME:
-        handleStartGame(message.split("\\s+", 2)[1]);
-        break;
-      case ALL_USERS_PROGRESS:
-        handleUpdateUsersProgress(parts);
-        break;
-      case END_GAME:
-        handleEndGame(parts[1]);
-        break;
-      case DEL_USER:
-        handleUserDelete(parts[1]);
-        break;
-      case ERROR:
-        LOGGER.warning("Error : " + message.split("\\s+", 2)[1]);
-        break;
-      default:
-        LOGGER.warning("Unhandled multicast message: " + message);
+      case NEW_USER -> handleUserJoin(parts[1]);
+      case USER_READY -> handleUserReady(parts[1]);
+      case START_GAME -> handleStartGame(message.split("\\s+", 2)[1]);
+      case ALL_USERS_PROGRESS -> handleUpdateUsersProgress(parts);
+      case END_GAME -> handleEndGame(parts[1]);
+      case DEL_USER -> handleUserDelete(parts[1]);
+      case ERROR -> LOGGER.warning("Error: " + message.split("\\s+", 2)[1]);
+      default -> LOGGER.warning("Unhandled multicast message: " + message);
+    }
+  }
+
+  private void handleUserJoin(String username) {
+    if (!username.equals(state.getSelfUsername())) {
+      state.addPlayer(username);
     }
   }
 

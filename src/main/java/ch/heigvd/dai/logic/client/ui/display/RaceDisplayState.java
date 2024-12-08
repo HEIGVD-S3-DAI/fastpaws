@@ -1,7 +1,7 @@
 package ch.heigvd.dai.logic.client.ui.display;
 
 import ch.heigvd.dai.commands.Client;
-import ch.heigvd.dai.logic.client.ui.TerminalRenderer;
+import ch.heigvd.dai.logic.client.ui.TerminalUI;
 import ch.heigvd.dai.logic.shared.Player;
 import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.graphics.TextGraphics;
@@ -18,8 +18,8 @@ public class RaceDisplayState extends DisplayState {
   private int cursorIndex = 0;
   private final StringBuilder userText = new StringBuilder();
 
-  public RaceDisplayState(TerminalRenderer renderer) {
-    super(renderer);
+  public RaceDisplayState(TerminalUI ui) {
+    super(ui);
   }
 
   public void render(TextGraphics tg) throws IOException {
@@ -30,13 +30,13 @@ public class RaceDisplayState extends DisplayState {
   private int renderPlayersProgress(TextGraphics tg) throws IOException {
     int offset = 0;
 
-    String selfUsername = renderer.getClientState().getSelfUsername();
-    Player self = renderer.getClientState().getPlayers().get(selfUsername);
+    String selfUsername = ui.getClientState().getSelfUsername();
+    Player self = ui.getClientState().getPlayers().get(selfUsername);
 
     renderPlayerProgress(tg, selfUsername + " (you)", self.getProgress(), offset);
     offset++;
 
-    for (Map.Entry<String, Player> entry : renderer.getClientState().getPlayers().entrySet()) {
+    for (Map.Entry<String, Player> entry : ui.getClientState().getPlayers().entrySet()) {
       if (!entry.getValue().isInGame()) continue;
       String username = entry.getKey();
       if (username.equals(selfUsername)) {
@@ -50,7 +50,7 @@ public class RaceDisplayState extends DisplayState {
 
   private void renderPlayerProgress(TextGraphics tg, String username, int progress, int offset)
       throws IOException {
-    int maxWidth = renderer.getTerminal().getTerminalSize().getColumns();
+    int maxWidth = ui.getTerminal().getTerminalSize().getColumns();
     int fullLen = maxWidth - username.length() - 1;
     int progLen = (int) Math.min(Math.round((double) progress * fullLen / 100), 100);
 
@@ -60,7 +60,7 @@ public class RaceDisplayState extends DisplayState {
   }
 
   private void renderTypingText(TextGraphics tg, int offset) throws IOException {
-    String[] lines = splitText(renderer.getTerminal());
+    String[] lines = splitText(ui.getTerminal());
     int currCharIndex = 0;
 
     for (int i = 0; i < lines.length; ++i) {
@@ -124,11 +124,9 @@ public class RaceDisplayState extends DisplayState {
       progress = 100;
     }
 
-    renderer
-        .getProtocol()
+    ui.getNetwork()
         .sendUnicast(
-            Client.Command.USER_PROGRESS,
-            renderer.getClientState().getSelfUsername() + " " + progress);
+            Client.Command.USER_PROGRESS, ui.getClientState().getSelfUsername() + " " + progress);
   }
 
   private String[] splitText(Terminal terminal) throws IOException {

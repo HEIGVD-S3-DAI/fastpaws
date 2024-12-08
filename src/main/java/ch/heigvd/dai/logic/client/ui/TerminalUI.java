@@ -18,20 +18,20 @@ import com.googlecode.lanterna.terminal.Terminal;
 import java.io.IOException;
 import java.util.logging.Logger;
 
-public class TerminalRenderer extends Thread implements UIEventListener {
-  private static final Logger LOGGER = Logger.getLogger(TerminalRenderer.class.getName());
+public class TerminalUI extends Thread implements UIEventListener {
+  private static final Logger LOGGER = Logger.getLogger(TerminalUI.class.getName());
   private static final int REFRESH_INTERVAL_MS = 50;
   private boolean running = true;
   private final ClientState state;
-  private final ClientProtocol protocol;
+  private final ClientProtocol network;
   private DisplayState currentDisplay;
 
   private Terminal terminal;
   private Screen screen;
 
-  public TerminalRenderer(ClientState state, ClientProtocol protocol) {
+  public TerminalUI(ClientState state, ClientProtocol network) {
     this.state = state;
-    this.protocol = protocol;
+    this.network = network;
     this.currentDisplay = new LobbyDisplayState(this);
     state.setUIEventListener(this);
   }
@@ -130,7 +130,7 @@ public class TerminalRenderer extends Thread implements UIEventListener {
     return state;
   }
 
-  public ClientProtocol getProtocol() {
-    return protocol;
+  public ClientProtocol getNetwork() {
+    return network;
   }
 }

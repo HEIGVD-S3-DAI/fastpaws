@@ -1,16 +1,16 @@
 package ch.heigvd.dai.logic.client.ui.display;
 
-import ch.heigvd.dai.logic.client.ui.TerminalRenderer;
+import ch.heigvd.dai.logic.client.ui.TerminalUI;
 import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
 import java.io.IOException;
 
 public abstract class DisplayState {
-  protected final TerminalRenderer renderer;
+  protected final TerminalUI ui;
 
-  public DisplayState(TerminalRenderer renderer) {
-    this.renderer = renderer;
+  public DisplayState(TerminalUI ui) {
+    this.ui = ui;
   }
 
   public abstract void render(TextGraphics tg) throws IOException;
@@ -18,8 +18,8 @@ public abstract class DisplayState {
   public void handleInput(KeyStroke keyStroke) throws IOException {
     if ((keyStroke.getKeyType() == KeyType.Character && keyStroke.getCharacter() == 'q')
         || keyStroke.getKeyType() == KeyType.Escape) {
-      renderer.end();
-      renderer.getProtocol().closeMulticast();
+      ui.end();
+      ui.getNetwork().closeMulticast();
     }
   }
 }

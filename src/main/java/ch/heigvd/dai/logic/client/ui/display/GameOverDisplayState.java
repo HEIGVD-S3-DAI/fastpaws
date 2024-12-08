@@ -1,6 +1,6 @@
 package ch.heigvd.dai.logic.client.ui.display;
 
-import ch.heigvd.dai.logic.client.ui.TerminalRenderer;
+import ch.heigvd.dai.logic.client.ui.TerminalUI;
 import ch.heigvd.dai.logic.shared.BaseState;
 import com.googlecode.lanterna.SGR;
 import com.googlecode.lanterna.TextColor;
@@ -17,8 +17,8 @@ public class GameOverDisplayState extends DisplayState {
     " \\___/\\_,_/_/_/_/\\__/\\____/|___/\\__/_/",
   };
 
-  public GameOverDisplayState(TerminalRenderer renderer) {
-    super(renderer);
+  public GameOverDisplayState(TerminalUI ui) {
+    super(ui);
   }
 
   public void render(TextGraphics tg) {
@@ -32,8 +32,8 @@ public class GameOverDisplayState extends DisplayState {
     tg.setForegroundColor(TextColor.ANSI.DEFAULT);
 
     // Display winner message
-    String selfUsername = renderer.getClientState().getSelfUsername();
-    String winner = renderer.getClientState().getWinner();
+    String selfUsername = ui.getClientState().getSelfUsername();
+    String winner = ui.getClientState().getWinner();
     String message =
         winner.equals(selfUsername)
             ? "Congratulations! You won the game!"
@@ -48,7 +48,7 @@ public class GameOverDisplayState extends DisplayState {
     super.handleInput(keyStroke);
 
     if (keyStroke.getKeyType() == KeyType.Enter) {
-      renderer.getClientState().setGameState(BaseState.GameState.WAITING);
+      ui.getClientState().setGameState(BaseState.GameState.WAITING);
     }
   }
 }

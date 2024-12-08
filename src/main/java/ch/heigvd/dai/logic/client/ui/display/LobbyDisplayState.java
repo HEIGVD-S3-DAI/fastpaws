@@ -2,7 +2,7 @@ package ch.heigvd.dai.logic.client.ui.display;
 
 import ch.heigvd.dai.commands.Client;
 import ch.heigvd.dai.commands.Server;
-import ch.heigvd.dai.logic.client.ui.TerminalRenderer;
+import ch.heigvd.dai.logic.client.ui.TerminalUI;
 import ch.heigvd.dai.logic.server.TypingGame;
 import ch.heigvd.dai.logic.shared.Message;
 import ch.heigvd.dai.logic.shared.Player;
@@ -25,8 +25,8 @@ public class LobbyDisplayState extends DisplayState {
 
   private long gameStartTime = -1;
 
-  public LobbyDisplayState(TerminalRenderer renderer) {
-    super(renderer);
+  public LobbyDisplayState(TerminalUI ui) {
+    super(ui);
   }
 
   public void render(TextGraphics tg) {
@@ -45,10 +45,10 @@ public class LobbyDisplayState extends DisplayState {
   }
 
   private void displayPlayerList(TextGraphics tg) {
-    String selfUsername = renderer.getClientState().getSelfUsername();
-    Player self = renderer.getClientState().getPlayers().get(selfUsername);
-    int numConnected = renderer.getClientState().getPlayers().size();
-    boolean allPlayersReady = renderer.getClientState().allPlayersReady();
+    String selfUsername = ui.getClientState().getSelfUsername();
+    Player self = ui.getClientState().getPlayers().get(selfUsername);
+    int numConnected = ui.getClientState().getPlayers().size();
+    boolean allPlayersReady = ui.getClientState().allPlayersReady();
 
     tg.enableModifiers(SGR.BOLD);
     tg.enableModifiers(SGR.UNDERLINE);
@@ -60,7 +60,7 @@ public class LobbyDisplayState extends DisplayState {
         0, 7, "  - " + selfUsername + " (you)" + (self.isReady() ? " [ready]" : " [not ready]"));
 
     int offset = 8;
-    for (Map.Entry<String, Player> entry : renderer.getClientState().getPlayers().entrySet()) {
+    for (Map.Entry<String, Player> entry : ui.getClientState().getPlayers().entrySet()) {
       String username = entry.getKey();
       if (username.equals(selfUsername)) {
         continue;
@@ -76,7 +76,7 @@ public class LobbyDisplayState extends DisplayState {
       offset++;
     }
 
-    if (!self.isReady() && !renderer.getClientState().isPlayerInGame()) {
+    if (!self.isReady() && !ui.getClientState().isPlayerInGame()) {
       offset++;
       tg.putString(0, offset, "Press ENTER when ready");
     } else if (allPlayersReady && numConnected >= TypingGame.MIN_PLAYERS_FOR_GAME) {
@@ -97,12 +97,12 @@ public class LobbyDisplayState extends DisplayState {
     super.handleInput(keyStroke);
 
     if (keyStroke.getKeyType() == KeyType.Enter
-        && !renderer.getClientState().getSelf().isReady()
-        && !renderer.getClientState().isPlayerInGame()) {
-      String selfUsername = renderer.getClientState().getSelfUsername();
-      renderer.getClientState().setPlayerReady(selfUsername);
+        && !ui.getClientState().getSelf().isReady()
+        && !ui.getClientState().isPlayerInGame()) {
+      String selfUsername = ui.getClientState().getSelfUsername();
+      ui.getClientState().setPlayerReady(selfUsername);
       Message res =
-          renderer.getProtocol().sendWithResponseUnicast(Client.Command.USER_READY, selfUsername);
+          ui.getNetwork().sendWithResponseUnicast(Client.Command.USER_READY, selfUsername);
 
       String[] parts = res.getParts();
       Server.Command command = null;
@@ -113,9 +113,9 @@ public class LobbyDisplayState extends DisplayState {
       }
       if (command == Server.Command.CURRENT_USERS_READY) {
         for (int i = 1; i < parts.length; i++) {
-          if (renderer.getClientState().playerExists(parts[i])) continue;
-          renderer.getClientState().addPlayer(parts[i]);
-          renderer.getClientState().setPlayerReady(parts[i]);
+          if (ui.getClientState().playerExists(parts[i])) continue;
+          ui.getClientState().addPlayer(parts[i]);
+          ui.getClientState().setPlayerReady(parts[i]);
         }
       }
     }
