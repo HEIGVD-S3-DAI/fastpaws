@@ -35,16 +35,16 @@ When starting the server, it listens for unicast UDP messages on http://localhos
 The server will send messages using multicast with UDP fire-and-forget pattern /230.0.0.0:4446 
 (we always refer to this when talking about the server sending multicast request below), this communication doesn't need to be initiated.
 
-### Join server
+### Join the server
 
 The client initiate the communication using unicast with UDP request-response pattern on the server port : 4445.
 
 This first request is asking to join the game with a given username. 
 
-The server has to verify if that username isn't already taken. 
+The server has to verify if that username is valid (isn't already taken, too long or contains invalid characters). 
 
 If the username is valid, the server stores it and responds with a list of all the other usernames of clients waiting to play
-and indicating if they're ready or not. 
+and indicating their status (ready, not ready, in game).
 It will also send a multicast request to inform that a new client joined providing his username.
 
 If it is not valid, it responds by asking the client to choose another username until a valid one is proposed.
@@ -59,8 +59,8 @@ The server send a multicast request to inform that this client is now ready.
 
 ### Start the game
 
-Once the required number of ready clients is reached (by default 2), 
-the server send a mulitcast request to inform that the game is starting by sending the text to type.
+Once the required number of ready clients is reached (currently 2), 
+the server send a multicast request to inform that the game is starting by sending the text to type.
 
 ### Update the progress
 
@@ -74,7 +74,7 @@ Every 2 seconds, The server send a multicast request with the usernames and prog
 
 At any time, a client can send a request to quit the game using unicast UDP fire-and-forget pattern on the server port : 4445.
 
-The server send a multicast request to inform a client left, indicating his username.
+The server send a multicast request to inform that a client left, indicating his username.
 
 It also checks if all the clients left, and end the game if it is the case.
 
@@ -86,48 +86,52 @@ For every request sent by the client, if we have an unknown message/illegal numb
 the server must send a unicast UDP response with an error message to the client indicating what the issue is. 
 This of course uses the address and port of the client that initiated the communication.
 
+We use string messages for communicating the error description.
+
 ## Messages
 
-- `name` the username of the client
-- `progress` is defined as the percentage of completed letters.
-- `status` is defined as the player state the possible values being : not ready, ready and in game.
+- `username` the username of the client
+- `progress` is defined as the percentage (integer between 0 and 100) of completed letters.
+- `...` denotes arbitrary length string and should be parsed until the end of line.
 
-### Join the Sever
+### Join the server
 
-The client send a message to the servet indicating his username.
+The client send a message to the server indicating his username.
 
 **Request:**
 
 ```
-USER_JOIN <name>
+USER_JOIN <username>
 ```
 
 **Response:**
 
 ```
-OK <name1> <status1> <name2> <status2> : the client joined successfully, the list of connected client and their status
-USER_JOIN_ERR <messsage> : an error occured when trying to join, the message describe what happended (ex : username already taken.)
+OK <username1> <status1> <username2> <status2> : the client joined successfully, the list of connected client and their status
+USER_JOIN_ERR <message ...> : an error occured when trying to join, the message describe what happended (ex : username already taken.)
 ```
+- `status` is defined as the player state the possible values being : NOT_READY, READY, IN_GAME
+
 The client is responsible for displaying the information about the other clients.
 
-If the client joined successfuly, the server send a multicast request to inform a new client joinned.
+If the client joined successfully, the server send a multicast request to inform a new client joined.
 
 **Request:**
 
 ```
-NEW_USER <name>
+NEW_USER <username>
 ```
 
-After succesfully connecting, the client join the multicast group. 
+After successfully connecting, the client join the multicast group. 
 
-### Prepare the Game 
+### Prepare the game 
 
 The client initiates a request to indicate he is ready.
 
 **Request:**
 
 ```
-USER_READY <name>
+USER_READY <username>
 ```
 
 **Response:**
@@ -141,10 +145,10 @@ The server send a multicast request to inform that this client is ready.
 **Request:**
 
 ```
-USER_READY <name>
+USER_READY <username>
 ```
 
-### Start the Game 
+### Start the game 
 
 The server send a multicast request to inform that the game starts and provide the text to type.
 
@@ -155,14 +159,14 @@ START_GAME <text>
 ```
 The client is responsible for displaying the text and input of the player.
 
-### Update the Progress
+### Update the progress
 
 The client initiates a request to send his progress at every keypress, it is responsible for calculating the progress.
 
 **Request:**
 
 ```
-USER_PROGRESS <name> <progress> 
+USER_PROGRESS <username> <progress> 
 ```
 
 **Response:**
@@ -171,33 +175,33 @@ USER_PROGRESS <name> <progress>
 No response.
 ```
 
-Every 5 seconds, the server send a multicast request to inform of the progress of each client.
+Every 2 seconds, the server send a multicast request to inform of the progress of each client.
 ```
-ALL_USERS_PROGRESS <name1> <progress1> <name2> <progress2>  ...
+ALL_USERS_PROGRESS <username1> <progress1> <username2> <progress2>  ...
 ```
 The client is responsible for displaying the progress of all other clients.
 
-### End the Game 
+### End the game 
 
 When a client reached 100%, the server send a multicast request to inform the game is over and indicate who the winner is.
 
 **Request:**
 
 ```
-END_GAME <winner_name>
+END_GAME <winner_username>
 ```
-- `winner_name` : username of the winning client
+- `winner_username` : username of the winning client
 
 The client responsible for displaying the game over screen and the winner username.
 
-### Quit the Sever
+### Quit the server
 
 The client send a request to quit the server.
 
 **Request:**
 
 ```
-USER_QUIT <name>
+USER_QUIT <username>
 ```
 
 **Response:**
@@ -211,7 +215,7 @@ The server send a multicast request to inform a client left.
 **Request:**
 
 ```
-DEL_USER <name>
+DEL_USER <username>
 ```
 The client is responsible updating the display of the current clients in game, by removing him.
 
@@ -222,7 +226,7 @@ For all generic errors, the server can respond to a request with :
 **Response:**
 
 ```
-ERROR <errorMessage>
+ERROR <errorMessage ...>
 ```
 - `errorMessage` : specify what the issue is.
 
