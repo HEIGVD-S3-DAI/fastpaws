@@ -1,5 +1,6 @@
 # FastPaws
 
+
 - [About](#about)
   - [Purpose](#purpose)
 - [How to play](#how-to-play)
@@ -13,6 +14,7 @@
 - [References](#references)
 - [Authors](#authors)
 
+
 ## About
 
 FastPaws is a terminal based typing game that is played using a client-server architecture. It works with the UDP protocol. To learn more about the networking, refer to the [Protocol Documentation](docs/protocol.md).
@@ -21,7 +23,17 @@ FastPaws is a terminal based typing game that is played using a client-server ar
 
 The purpose of this project is to create a simple and efficient client-server for a typing game using the UDP protocol.
 
+![Game Screenshot](docs/game.png)
+
 ## How to play
+
+```
+   ____         __  ___                
+  / __/__ ____ / /_/ _ \___ __    _____
+ / _// _ `(_-</ __/ ___/ _ `/ |/|/ (_-<
+/_/  \_,_/___/\__/_/   \_,_/|__,__/___/
+                                       
+```
 
 You are given a paragraph and your goal is to type it without making any mistakes.
 You win by correctly typing the paragraph.
@@ -122,6 +134,8 @@ The following will demonstrate how to run the application locally.
 4. Repeat step 2 and 3 to register a second client.
 5. Press enter on each client to start the game.
 6. Play!
+
+![Lobby Screenshot](docs/lobby.png)
 
 ## Development
 
