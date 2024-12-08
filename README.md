@@ -21,7 +21,7 @@ FastPaws is a terminal based typing game that is played using a client-server ar
 
 ### Purpose
 
-The purpose of this project is to create a simple and efficient client-server for a typing game using the UDP protocol.
+The purpose of this project is to create a simple and efficient client-server for a typing race using the UDP protocol.
 
 ![Game Screenshot](docs/game.png)
 
@@ -36,7 +36,7 @@ The purpose of this project is to create a simple and efficient client-server fo
 ```
 
 You are given a paragraph and your goal is to type it without making any mistakes.
-You win by correctly typing the paragraph.
+You win by being the first player to correctly type the paragraph.
 
 You cannot win the game if you have typos in your paragraph. Make sure to correct all your mistakes.
 
@@ -132,8 +132,10 @@ The following will demonstrate how to run the application locally.
    ```
 3. The client will prompt you to enter your username. Enter your username and press enter.
 4. Repeat step 2 and 3 to register a second client.
-5. Press enter on each client to start the game.
-6. Play!
+5. Press enter when you're ready on each client.
+6. When everyone is ready, the game starts. Good luck !
+
+Here's how the waiting screen looks like.
 
 ![Lobby Screenshot](docs/lobby.png)
 
@@ -184,6 +186,7 @@ docker build -t ghcr.io/heigvd-s3-dai/fastpaws:latest .
 ## References
 
 - https://play.typeracer.com
+- Text about cats generated using chatGPT
 
 ## Authors
 
