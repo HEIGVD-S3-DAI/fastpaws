@@ -29,7 +29,9 @@ public abstract class DisplayState {
    * @throws IOException if an error occurs while handling the input
    */
   public void handleInput(KeyStroke keyStroke) throws IOException {
-    if ((keyStroke.getKeyType() == KeyType.Character && keyStroke.getCharacter() == 'q')
+    if ((!ui.getClientState().isGameRunning()
+            && keyStroke.getKeyType() == KeyType.Character
+            && keyStroke.getCharacter() == 'q')
         || keyStroke.getKeyType() == KeyType.Escape) {
       ui.end();
       ui.getNetwork().closeMulticast();
