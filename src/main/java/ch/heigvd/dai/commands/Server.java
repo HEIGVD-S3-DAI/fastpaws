@@ -47,13 +47,12 @@ public class Server implements Callable<Integer> {
 
   private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
-  private ServerProtocol protocol;
+  private ServerProtocol network;
   private ServerState state;
 
   public enum Command {
     OK,
     USER_JOIN_ERR,
-    WAIT,
     NEW_USER,
     USER_READY,
     CURRENT_USERS_READY,
@@ -61,7 +60,29 @@ public class Server implements Callable<Integer> {
     ALL_USERS_PROGRESS,
     END_GAME,
     DEL_USER,
-    ERROR,
+    ERROR;
+
+    public static Command fromString(String text) {
+      try {
+        return valueOf(text);
+      } catch (IllegalArgumentException e) {
+        return null;
+      }
+    }
+  }
+
+  public enum CommandPlayerState {
+    NOT_READY,
+    READY,
+    IN_GAME;
+
+    public static CommandPlayerState fromString(String text) {
+      try {
+        return valueOf(text);
+      } catch (IllegalArgumentException e) {
+        return null;
+      }
+    }
   }
 
   @Override
@@ -73,149 +94,265 @@ public class Server implements Callable<Integer> {
       LOGGER.severe("Server encountered an error: " + e.getMessage());
       exitCode = 1;
     } finally {
-      if (protocol != null) {
-        protocol.closeSockets();
+      if (network != null) {
+        network.closeSockets();
       }
     }
     return exitCode;
   }
 
+  /**
+   * Start the server and listen for unicast messages.
+   *
+   * @throws IOException if an error occurs while starting the server
+   */
   private void startServer() throws IOException {
     state = new ServerState();
-    protocol = new ServerProtocol(port, multicastAddress, multicastPort);
+    network = new ServerProtocol(port, multicastAddress, multicastPort);
     LOGGER.info("Listening on http://" + host + ":" + port + "...");
 
-    protocol.listenForUnicastMessages(this::handleMessage);
+    network.listenForUnicastMessages(this::handleMessage);
   }
 
+  /**
+   * Handle a unicast message from a client.
+   *
+   * @param message the message to handle
+   */
   private void handleMessage(Message message) {
     String[] parts = message.getParts();
-    Client.Command command = null;
+    Client.Command command = parseClientCommand(parts);
 
-    try {
-      command = Client.Command.valueOf(parts[0]);
-    } catch (IllegalArgumentException e) {
+    if (command == null) {
       LOGGER.warning("Received unknown command: " + parts[0]);
       handleUnknownCommand(message.address, message.port);
       return;
     }
 
+    if (!hasValidArgumentCount(command, parts)) {
+      handleIllegalNumberOfArguments(message.address, message.port);
+      return;
+    }
+
     switch (command) {
-      case USER_JOIN:
-        if (parts.length != 2) {
-          handleIllegalNumberOfArguments(message.address, message.port);
-        } else {
-          handleUserJoin(parts[1], message.address, message.port);
-        }
-        break;
-      case USER_READY:
-        if (parts.length != 2) {
-          handleIllegalNumberOfArguments(message.address, message.port);
-        } else {
-          handleUserReady(parts[1], message.address, message.port);
-        }
-        break;
-      case USER_PROGRESS:
-        if (parts.length != 3) {
-          handleIllegalNumberOfArguments(message.address, message.port);
-        } else {
+      case USER_JOIN -> handleUserJoin(parts[1], message.address, message.port);
+      case USER_READY -> handleUserReady(parts[1], message.address, message.port);
+      case USER_PROGRESS ->
           handleUserProgress(parts[1], message.address, message.port, Integer.parseInt(parts[2]));
-        }
-        break;
-      case USER_QUIT:
-        if (parts.length != 2) {
-          handleIllegalNumberOfArguments(message.address, message.port);
-        } else {
-          handleUserQuit(parts[1], message.address, message.port);
-        }
-        break;
-      default:
+      case USER_QUIT -> handleUserQuit(parts[1], message.address, message.port);
+      default -> {
         LOGGER.warning("Unhandled command: " + command);
         handleUnknownCommand(message.address, message.port);
+      }
     }
   }
 
-  private void handleIllegalNumberOfArguments(InetAddress address, int port) {
-    protocol.sendUnicast(
-        new Message(Command.ERROR + " Illegal number of arguments.", address, port));
+  /**
+   * Parse a client command from an array of parts.
+   *
+   * @param parts the parts of the command
+   * @return the parsed command or null if the command is unknown
+   */
+  private Client.Command parseClientCommand(String[] parts) {
+    if (parts.length == 0) return null;
+    try {
+      return Client.Command.valueOf(parts[0]);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
   }
 
-  private void handleUnknownCommand(InetAddress address, int port) {
-    protocol.sendUnicast(new Message(Command.ERROR + " Unknown command.", address, port));
+  /**
+   * Check if the number of arguments for a client command is valid.
+   *
+   * @param command the command to check
+   * @param parts the parts of the command
+   * @return true if the number of arguments is valid, false otherwise
+   */
+  private boolean hasValidArgumentCount(Client.Command command, String[] parts) {
+    return switch (command) {
+      case USER_JOIN, USER_READY, USER_QUIT -> parts.length == 2;
+      case USER_PROGRESS -> parts.length == 3;
+    };
   }
 
+  /**
+   * Handle a user join to the server.
+   *
+   * @param username the username of the player
+   * @param address the address of the player
+   * @param port the port of the player
+   */
   private void handleUserJoin(String username, InetAddress address, int port) {
+    // Validate username
     if (state.usernameExists(username)) {
-      protocol.sendUnicast(
+      network.sendUnicast(
           new Message(Command.USER_JOIN_ERR + " Username already taken", address, port));
       return;
     }
-    if (!state.isGameRunning()) {
-      state.setGameState(BaseState.GameState.WAITING);
-      state.registerClient(username, new ClientInfo(address, port));
-      protocol.sendUnicast(new Message(Command.OK.toString(), address, port));
-      protocol.multicast(Command.NEW_USER + " " + username);
-    } else {
-      protocol.sendUnicast(new Message(Command.WAIT.toString(), address, port));
+    if (username.length() > 15) {
+      network.sendUnicast(
+          new Message(
+              Command.USER_JOIN_ERR + " Username must be maximux 15 characters long",
+              address,
+              port));
+      return;
     }
+    if (!username.matches("[A-Za-z0-9]+")) {
+      network.sendUnicast(
+          new Message(
+              Command.USER_JOIN_ERR + " Username can only contain letters and digits",
+              address,
+              port));
+      return;
+    }
+
+    // Always allow joining, regardless of game state
+    handleSuccessfulJoin(username, address, port);
   }
 
+  /**
+   * Handle a successful join to the server.
+   *
+   * @param username the username of the player
+   * @param address the address of the player
+   * @param port the port of the player
+   */
+  private void handleSuccessfulJoin(String username, InetAddress address, int port) {
+    state.registerClient(username, new ClientInfo(address, port));
+
+    // Build list of current players with their ready state or in-game state
+    StringBuilder currentUsers = new StringBuilder();
+    for (Map.Entry<String, ClientInfo> entry : state.getConnectedClients().entrySet()) {
+      String existingUser = entry.getKey();
+      if (!existingUser.equals(username)) {
+        CommandPlayerState playerState =
+            state.isGameRunning()
+                ? CommandPlayerState.IN_GAME
+                : (state.isUserReady(existingUser)
+                    ? CommandPlayerState.READY
+                    : CommandPlayerState.NOT_READY);
+        currentUsers.append(" ").append(existingUser).append(" ").append(playerState);
+      }
+    }
+
+    // Send OK with current users list and their states
+    network.sendUnicast(new Message(Command.OK + currentUsers.toString(), address, port));
+    // Notify others of new user
+    network.multicast(Command.NEW_USER + " " + username);
+  }
+
+  /**
+   * Handle a user ready to the server.
+   *
+   * @param username the username of the player
+   * @param address the address of the player
+   * @param port the port of the player
+   */
   private void handleUserReady(String username, InetAddress address, int port) {
-    if (state.usernameExists(username)) {
-      state.setUserReady(username);
-      String currentUsersReady = "";
-      for (String playerUsername : state.getConnectedClients().keySet()) {
-        if (state.isUserReady(playerUsername)) {
-          currentUsersReady += " " + playerUsername;
-        }
-      }
-      protocol.sendUnicast(
-          new Message(Command.CURRENT_USERS_READY + currentUsersReady, address, port));
+    if (!state.usernameExists(username)) {
+      network.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
+      return;
+    }
 
-      protocol.multicast(Command.USER_READY + " " + username);
-      if (state.getNumPlayers() >= TypingGame.MIN_PLAYERS_FOR_GAME && state.areAllUsersReady()) {
-        LOGGER.info("Starting game in 5 seconds...");
-        try {
-          TimeUnit.SECONDS.sleep(5);
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e); // We want to crash the server, something is going wrong
-        }
-        protocol.multicast(Command.START_GAME + " " + TypingGame.getParagraph());
-        state.setGameState(BaseState.GameState.RUNNING);
-        new Thread(this::multicastProgress).start();
-      }
-    } else {
-      protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
+    if (state.isGameFinished()) {
+      state.setGameState(BaseState.GameState.WAITING);
+    }
+
+    state.setUserReady(username);
+    sendReadyStatusUpdates(username, address, port);
+
+    if (canStartGame()) {
+      startGame();
     }
   }
 
+  /**
+   * Send ready status updates to a client.
+   *
+   * @param username the username of the player
+   * @param address the address of the player
+   * @param port the port of the player
+   */
+  private void sendReadyStatusUpdates(String username, InetAddress address, int port) {
+    String currentUsersReady =
+        state.getConnectedClients().keySet().stream()
+            .filter(state::isUserReady)
+            .reduce("", (acc, player) -> acc + " " + player);
+
+    network.sendUnicast(
+        new Message(Command.CURRENT_USERS_READY + currentUsersReady, address, port));
+    network.multicast(Command.USER_READY + " " + username);
+  }
+
+  /**
+   * Check if the game can start.
+   *
+   * @return true if the game can start, false otherwise
+   */
+  private boolean canStartGame() {
+    return state.isGameWaiting()
+        && state.getNumPlayers() >= TypingGame.MIN_PLAYERS_FOR_GAME
+        && state.areAllUsersReady();
+  }
+
+  /** Start the game. Starts the game and a new thread to multicast progress updates. */
+  private void startGame() {
+    for (ClientInfo client : state.getConnectedClients().values()) {
+      client.player.setInGame(true);
+    }
+    LOGGER.info("Starting game in " + TypingGame.GAME_START_DELAY + " seconds...");
+    try {
+      TimeUnit.SECONDS.sleep(TypingGame.GAME_START_DELAY);
+      network.multicast(Command.START_GAME + " " + TypingGame.getParagraph());
+      state.setGameState(BaseState.GameState.RUNNING);
+      new Thread(this::multicastProgress).start();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Handle a user progress update from a client.
+   *
+   * @param username the username of the player
+   * @param address the address of the player
+   * @param port the port of the player
+   * @param progress the progress of the player
+   */
   private void handleUserProgress(String username, InetAddress address, int port, int progress) {
+    LOGGER.info("USER_PROGRESS: " + username + " " + progress);
     if (!state.usernameExists(username)) {
-      protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
+      network.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
+    } else if (!state.getConnectedClients().get(username).player.isInGame()) {
+      network.sendUnicast(new Message(Command.ERROR + " " + "User is not in game.", address, port));
     } else if (progress < 0 || progress > 100) {
-      protocol.sendUnicast(new Message(Command.ERROR + " " + "Invalid score.", address, port));
+      network.sendUnicast(new Message(Command.ERROR + " " + "Invalid score.", address, port));
     } else {
       if (state.isGameRunning()) {
         state.setPlayerProgress(username, progress);
         if (progress == 100) {
           state.setGameState(BaseState.GameState.FINISHED);
-          protocol.multicast(Command.END_GAME + " " + username);
+          network.multicast(Command.END_GAME + " " + username);
           state.resetPlayers();
         }
       }
     }
   }
 
+  /** Multicast progress updates to all clients. */
   private void multicastProgress() {
     while (state.isGameRunning()) {
       StringBuilder sb = new StringBuilder();
       for (Map.Entry<String, ClientInfo> entry : state.getConnectedClients().entrySet()) {
-        sb.append(" ");
-        sb.append(entry.getKey());
-        sb.append(" ");
-        sb.append(entry.getValue().player.getProgress());
+        if (entry.getValue().player.isInGame()) {
+          sb.append(" ");
+          sb.append(entry.getKey());
+          sb.append(" ");
+          sb.append(entry.getValue().player.getProgress());
+        }
       }
-      protocol.multicast(Command.ALL_USERS_PROGRESS + sb.toString());
+      network.multicast(Command.ALL_USERS_PROGRESS + sb.toString());
       try {
         TimeUnit.SECONDS.sleep(2);
       } catch (InterruptedException e) {
@@ -224,15 +361,43 @@ public class Server implements Callable<Integer> {
     }
   }
 
+  /**
+   * Handle a user quit from a client.
+   *
+   * @param username the username of the player
+   * @param address the address of the player
+   * @param port the port of the player
+   */
   private void handleUserQuit(String username, InetAddress address, int port) {
     if (!state.usernameExists(username)) {
-      protocol.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
+      network.sendUnicast(new Message(Command.ERROR + " " + "User doesn't exist.", address, port));
     } else {
-      protocol.multicast(Command.DEL_USER + " " + username);
+      network.multicast(Command.DEL_USER + " " + username);
       state.removeUser(username);
-      if (state.getConnectedClients().isEmpty()) {
+      if (!state.isPlayerInGame()) {
         state.setGameState(BaseState.GameState.FINISHED);
       }
     }
+  }
+
+  /**
+   * Handle an illegal number of arguments from a client.
+   *
+   * @param address the address of the player
+   * @param port the port of the player
+   */
+  private void handleIllegalNumberOfArguments(InetAddress address, int port) {
+    network.sendUnicast(
+        new Message(Command.ERROR + " Illegal number of arguments.", address, port));
+  }
+
+  /**
+   * Handle an unknown command from a client.
+   *
+   * @param address the address of the player
+   * @param port the port of the player
+   */
+  private void handleUnknownCommand(InetAddress address, int port) {
+    network.sendUnicast(new Message(Command.ERROR + " Unknown command.", address, port));
   }
 }
