@@ -3,7 +3,7 @@ package ch.heigvd.dai.commands;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-    description = "A small CLI to convert images to GIFs.",
+    description = "A typing game client-server application",
     version = "1.0.0",
     subcommands = {
       Client.class,

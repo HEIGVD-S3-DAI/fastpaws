@@ -16,7 +16,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
     name = "server",
-    description = "Start a server to connect to the server",
+    description = "Start the server",
     mixinStandardHelpOptions = true)
 public class Server implements Callable<Integer> {
   @CommandLine.ParentCommand private Root parent;
