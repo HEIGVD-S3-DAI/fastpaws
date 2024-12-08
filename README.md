@@ -11,6 +11,7 @@
 - [Example](#example)
 - [Development](#development)
   - [Building the Docker Image](#building-the-docker-image)
+  - [Pushing the Docker Image](#pushing-the-docker-image)
 - [References](#references)
 - [Authors](#authors)
 
@@ -21,7 +22,7 @@ FastPaws is a terminal based typing game that is played using a client-server ar
 
 ### Purpose
 
-The purpose of this project is to create a simple and efficient client-server for a typing game using the UDP protocol.
+The purpose of this project is to create a simple and efficient client-server for a typing race using the UDP protocol.
 
 ![Game Screenshot](docs/game.png)
 
@@ -36,7 +37,7 @@ The purpose of this project is to create a simple and efficient client-server fo
 ```
 
 You are given a paragraph and your goal is to type it without making any mistakes.
-You win by correctly typing the paragraph.
+You win by being the first player to correctly type the paragraph.
 
 You cannot win the game if you have typos in your paragraph. Make sure to correct all your mistakes.
 
@@ -62,7 +63,7 @@ docker pull ghcr.io/heigvd-s3-dai/fastpaws:latest
 # Run the application
 docker run --network host --rm -it ghcr.io/heigvd-s3-dai/fastpaws:latest -h
 ```
-
+You should obtain the following output.
 ```bash
 Usage: app.jar [-hV] [COMMAND]
 A typing game client-server application
@@ -74,10 +75,11 @@ Commands:
 ```
 
 ### Server
-
+To see the available commands for server, run the following command.
 ```bash
 docker run --network host --rm -it ghcr.io/heigvd-s3-dai/fastpaws:latest server -h
 ```
+You should obtain the following output.
 
 ```bash
 Usage: app.jar server [-hV] [-H=<host>] [-M=<multicastAddress>] [-p=<port>]
@@ -95,10 +97,12 @@ Start the server to connect to the server
 ```
 
 ### Client
+To see the available commands for client, run the following command.
 
 ```bash
 docker run --network host --rm -it ghcr.io/heigvd-s3-dai/fastpaws:latest client -h
 ```
+You should obtain the following output.
 ```bash
 Usage: app.jar client [-hV] [-H=<serverHost>] -I=<networkInterface>
                       [-M=<serverMulticastAddress>] [-p=<serverPort>]
@@ -131,11 +135,21 @@ The following will demonstrate how to run the application locally.
    docker run --network host --rm -it ghcr.io/heigvd-s3-dai/fastpaws:latest client -I eth0
    ```
 3. The client will prompt you to enter your username. Enter your username and press enter.
-4. Repeat step 2 and 3 to register a second client.
-5. Press enter on each client to start the game.
-6. Play!
+4. Repeat step 2 and 3 in a new terminal to register a second client.
+5. When you're ready, press enter on each client.
+6. When everyone is ready, the game starts. Good luck !
+
+Here's how the waiting screen looks like.
 
 ![Lobby Screenshot](docs/lobby.png)
+
+Here's how it looks like during the game.
+
+![In game Screenshot](docs/ingame.png)
+
+Here's how it looks like when the game is finished.
+
+![End game Screenshot](docs/endgame.png)
 
 ## Development
 
@@ -179,11 +193,18 @@ To build the docker image, run the following command:
 docker build -t ghcr.io/heigvd-s3-dai/fastpaws:latest .
 ```
 
-// TODO: Add instructions for pushing to ghcr.io
+### Pushing the Docker Image
+
+To push the docker image, make sure you have logged in to the registry and run the following command:
+
+```bash
+docker push ghcr.io/heigvd-s3-dai/fastpaws:latest
+```
 
 ## References
 
 - https://play.typeracer.com
+- Text about cats generated using chatGPT
 
 ## Authors
 
